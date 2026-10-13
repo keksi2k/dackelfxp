@@ -11,5 +11,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\DackelFxp.Core\DackelFxp.Core.csproj" />
+    <Compile Include="..\DackelFxp.Ftp.Tests\FakeFtpServer.cs" Link="FakeFtpServer.cs" />
   </ItemGroup>
 </Project>
