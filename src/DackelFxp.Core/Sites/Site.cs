@@ -17,7 +17,7 @@ public sealed class Bookmark
 public sealed class Site
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public string Name { get; set; } = "Neue Site";
+    public string Name { get; set; } = Lang.T("Neue Site", "New site");
     /// <summary>Folder path in the site tree, e.g. "Scene/EU". Empty = root.</summary>
     public string Group { get; set; } = "";
 

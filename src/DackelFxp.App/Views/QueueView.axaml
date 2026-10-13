@@ -7,26 +7,26 @@
              x:DataType="vm:QueueViewModel">
   <DockPanel>
     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="4" Margin="4">
-      <Button Content="▶ Start" Command="{Binding StartCommand}" IsVisible="{Binding !IsRunning}" />
-      <Button Content="■ Stopp" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}" />
-      <Button Content="⤒" Command="{Binding MoveTopCommand}" ToolTip.Tip="Ganz nach oben" />
-      <Button Content="↑" Command="{Binding MoveUpCommand}" ToolTip.Tip="Nach oben" />
-      <Button Content="↓" Command="{Binding MoveDownCommand}" ToolTip.Tip="Nach unten" />
-      <Button Content="⤓" Command="{Binding MoveBottomCommand}" ToolTip.Tip="Ganz nach unten" />
-      <Button Content="Entfernen" Command="{Binding RemoveSelectedCommand}" />
-      <Button Content="Fertige entfernen" Command="{Binding RemoveFinishedCommand}" />
+      <Button Content="{DynamicResource Queue_Start}" Command="{Binding StartCommand}" IsVisible="{Binding !IsRunning}" />
+      <Button Content="{DynamicResource Queue_Stop}" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}" />
+      <Button Content="⤒" Command="{Binding MoveTopCommand}" ToolTip.Tip="{DynamicResource Queue_Top}" />
+      <Button Content="↑" Command="{Binding MoveUpCommand}" ToolTip.Tip="{DynamicResource Queue_Up}" />
+      <Button Content="↓" Command="{Binding MoveDownCommand}" ToolTip.Tip="{DynamicResource Queue_Down}" />
+      <Button Content="⤓" Command="{Binding MoveBottomCommand}" ToolTip.Tip="{DynamicResource Queue_Bottom}" />
+      <Button Content="{DynamicResource Btn_Remove}" Command="{Binding RemoveSelectedCommand}" />
+      <Button Content="{DynamicResource Menu_RemoveFinished}" Command="{Binding RemoveFinishedCommand}" />
     </StackPanel>
     <DataGrid x:Name="Grid" ItemsSource="{Binding Items}" SelectionMode="Extended" CanUserSortColumns="False">
       <DataGrid.ContextMenu>
         <ContextMenu>
-          <MenuItem Header="Wiederholen" Command="{Binding RetryCommand}" />
-          <MenuItem Header="Pausieren / Abbrechen" Command="{Binding PauseCommand}" />
+          <MenuItem Header="{DynamicResource Queue_Retry}" Command="{Binding RetryCommand}" />
+          <MenuItem Header="{DynamicResource Queue_Pause}" Command="{Binding PauseCommand}" />
           <Separator />
-          <MenuItem Header="Ganz nach oben" Command="{Binding MoveTopCommand}" />
-          <MenuItem Header="Ganz nach unten" Command="{Binding MoveBottomCommand}" />
+          <MenuItem Header="{DynamicResource Queue_Top}" Command="{Binding MoveTopCommand}" />
+          <MenuItem Header="{DynamicResource Queue_Bottom}" Command="{Binding MoveBottomCommand}" />
           <Separator />
-          <MenuItem Header="Entfernen" InputGesture="Delete" Command="{Binding RemoveSelectedCommand}" />
-          <MenuItem Header="Fertige entfernen" Command="{Binding RemoveFinishedCommand}" />
+          <MenuItem Header="{DynamicResource Btn_Remove}" InputGesture="Delete" Command="{Binding RemoveSelectedCommand}" />
+          <MenuItem Header="{DynamicResource Menu_RemoveFinished}" Command="{Binding RemoveFinishedCommand}" />
         </ContextMenu>
       </DataGrid.ContextMenu>
       <DataGrid.Columns>
@@ -48,14 +48,16 @@
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTemplateColumn Header="Quelle" Width="*">
+        <DataGridTemplateColumn Width="*">
+          <DataGridTemplateColumn.Header><TextBlock Text="{DynamicResource Col_Source}" /></DataGridTemplateColumn.Header>
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate x:DataType="q:QueueItem">
               <TextBlock Text="{Binding Source.SiteName}" ToolTip.Tip="{Binding Source.Path}" VerticalAlignment="Center" Margin="6,0" />
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTemplateColumn Header="Ziel" Width="2*">
+        <DataGridTemplateColumn Width="2*">
+          <DataGridTemplateColumn.Header><TextBlock Text="{DynamicResource Col_Target}" /></DataGridTemplateColumn.Header>
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate x:DataType="q:QueueItem">
               <TextBlock VerticalAlignment="Center" Margin="6,0" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Target.Path}">
@@ -65,14 +67,16 @@
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTemplateColumn Header="Größe" Width="85">
+        <DataGridTemplateColumn Width="85">
+          <DataGridTemplateColumn.Header><TextBlock Text="{DynamicResource Col_Size}" /></DataGridTemplateColumn.Header>
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate x:DataType="q:QueueItem">
               <TextBlock Text="{Binding Size, Converter={x:Static conv:Formats.BytesConverter}}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="6,0" />
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTemplateColumn Header="Fortschritt" Width="130">
+        <DataGridTemplateColumn Width="130">
+          <DataGridTemplateColumn.Header><TextBlock Text="{DynamicResource Col_Progress}" /></DataGridTemplateColumn.Header>
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate x:DataType="q:QueueItem">
               <Grid Margin="4,3">

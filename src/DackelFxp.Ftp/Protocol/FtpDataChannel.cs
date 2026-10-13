@@ -14,7 +14,7 @@ internal sealed class FtpDataChannel : IAsyncDisposable
 
     private FtpDataChannel() { }
 
-    public Stream Stream => _stream ?? throw new FtpException("Datenverbindung nicht geöffnet");
+    public Stream Stream => _stream ?? throw new FtpException(Lang.T("Datenverbindung nicht geöffnet", "Data connection not open"));
 
     public static async Task<FtpDataChannel> ConnectAsync(IPEndPoint endPoint, TimeSpan timeout, CancellationToken ct)
     {
@@ -28,12 +28,12 @@ internal sealed class FtpDataChannel : IAsyncDisposable
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
             socket.Dispose();
-            throw new FtpException($"Zeitüberschreitung bei der Datenverbindung zu {endPoint}");
+            throw new FtpException(Lang.T($"Zeitüberschreitung bei der Datenverbindung zu {endPoint}", $"Timeout on data connection to {endPoint}"));
         }
         catch (SocketException ex)
         {
             socket.Dispose();
-            throw new FtpException($"Datenverbindung zu {endPoint} fehlgeschlagen: {ex.Message}", ex);
+            throw new FtpException(Lang.T($"Datenverbindung zu {endPoint} fehlgeschlagen: {ex.Message}", $"Data connection to {endPoint} failed: {ex.Message}"), ex);
         }
         return new FtpDataChannel { _socket = socket, _stream = new NetworkStream(socket, ownsSocket: true) };
     }
@@ -49,7 +49,7 @@ internal sealed class FtpDataChannel : IAsyncDisposable
             try { return StartListener(localAddress, port); }
             catch (SocketException) { /* port in use, try next */ }
         }
-        throw new FtpException($"Kein freier Port im Bereich {portMin}-{portMax}");
+        throw new FtpException(Lang.T($"Kein freier Port im Bereich {portMin}-{portMax}", $"No free port in range {portMin}-{portMax}"));
     }
 
     private static FtpDataChannel StartListener(IPAddress localAddress, int port)
@@ -72,7 +72,7 @@ internal sealed class FtpDataChannel : IAsyncDisposable
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            throw new FtpException("Server hat keine aktive Datenverbindung aufgebaut (PORT)");
+            throw new FtpException(Lang.T("Server hat keine aktive Datenverbindung aufgebaut (PORT)", "Server did not open the active data connection (PORT)"));
         }
         finally
         {
@@ -93,7 +93,7 @@ internal sealed class FtpDataChannel : IAsyncDisposable
         {
             await ssl.DisposeAsync().ConfigureAwait(false);
             _stream = null;
-            throw new FtpException($"TLS auf der Datenverbindung fehlgeschlagen: {ex.Message}", ex);
+            throw new FtpException(Lang.T($"TLS auf der Datenverbindung fehlgeschlagen: {ex.Message}", $"TLS on the data connection failed: {ex.Message}"), ex);
         }
         _stream = ssl;
     }

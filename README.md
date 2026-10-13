@@ -16,7 +16,8 @@ Vorbild ist FlashFXP: zwei Browser-Seiten, Site-Manager, Queue und Site-zu-Site-
 - **Skiplisten / Prioritäten:** Wildcard und Regex, z. B. `.sfv`/`.nfo` zuerst, `Sample` zuletzt
 - **Werkzeuge:** Ordnervergleich mit Markierung, „Unterschiede in Queue", SFV-Prüfung (CRC32), Benutzerbefehle mit Platzhaltern (`%p %f %d %s %1`), Raw-Befehle, CHMOD, Anzeigen/Bearbeiten mit automatischem Upload nach dem Speichern, Planer (Queue zeitgesteuert starten/stoppen), Ident-Server
 - **Sicherheit:** Passwörter AES-GCM-verschlüsselt, optional mit Master-Passwort (PBKDF2)
-- **Oberfläche:** Drag & Drop zwischen den Seiten und aus dem Dateimanager, Lesezeichen, Filter, farbiges Protokoll pro Verbindung, helles/dunkles Design
+- **Oberfläche:** Drag & Drop zwischen den Seiten und aus dem Dateimanager, Lesezeichen, Filter, farbiges Protokoll pro Verbindung, helles/dunkles Design, Deutsch/Englisch (live umschaltbar unter *Werkzeuge → Sprache*)
+- **Befehlszeile** unter dem Log: Raw- und eigene Befehle an die Site der linken oder rechten Seite, Antworten erscheinen im Log (Verlauf mit ↑/↓)
 
 ## Tastenkürzel
 
@@ -28,6 +29,7 @@ Vorbild ist FlashFXP: zwei Browser-Seiten, Site-Manager, Queue und Site-zu-Site-
 | F2, F3, F5, F7, Entf | Umbenennen, Anzeigen/Bearbeiten, Aktualisieren, Neuer Ordner, Löschen |
 | Ctrl+L | Pfadzeile |
 | Ctrl+M | Ordner vergleichen |
+| Ctrl+K | Befehlszeile |
 | F9 / Shift+F9 | Queue starten / stoppen |
 
 ## Bauen und starten

@@ -1,3 +1,4 @@
+using DackelFxp.Ftp;
 using DackelFxp.Core.Connections;
 using DackelFxp.Core.Sites;
 using DackelFxp.Ftp.Listing;
@@ -55,7 +56,7 @@ public sealed class LocalBrowser : IBrowser
         }
 
         var dir = new DirectoryInfo(path);
-        if (!dir.Exists) throw new DirectoryNotFoundException($"Verzeichnis nicht gefunden: {path}");
+        if (!dir.Exists) throw new DirectoryNotFoundException(Lang.T($"Verzeichnis nicht gefunden: {path}", $"Directory not found: {path}"));
         var options = new EnumerationOptions { IgnoreInaccessible = true, AttributesToSkip = 0, RecurseSubdirectories = false };
         IReadOnlyList<BrowserEntry> entries = dir.EnumerateFileSystemInfos("*", options)
             .Select(i => new BrowserEntry(

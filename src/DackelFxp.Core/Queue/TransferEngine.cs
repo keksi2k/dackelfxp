@@ -1,3 +1,4 @@
+using DackelFxp.Ftp;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using DackelFxp.Core.Connections;
@@ -187,7 +188,7 @@ public sealed class TransferEngine : IAsyncDisposable
     private Site? ResolveSite(TransferEndpoint endpoint) => endpoint.SiteId is { } id ? _sites.Find(id) : null;
 
     private Site RequireSite(TransferEndpoint endpoint) =>
-        ResolveSite(endpoint) ?? throw new InvalidOperationException($"Site '{endpoint.SiteName}' existiert nicht mehr");
+        ResolveSite(endpoint) ?? throw new InvalidOperationException(Lang.T($"Site '{endpoint.SiteName}' existiert nicht mehr", $"Site '{endpoint.SiteName}' no longer exists"));
 
     // ---------------------------------------------------------------- existing targets
 
@@ -238,7 +239,7 @@ public sealed class TransferEngine : IAsyncDisposable
         var dir = Path.GetDirectoryName(targetPath)!;
         var resolved = await ResolveExistingAsync(item, item.Size, existing, targetPath,
             () => Task.FromResult<Func<string, bool>>(name => File.Exists(Path.Combine(dir, name))), canResume: true).ConfigureAwait(false);
-        if (resolved is not { } target) return "Ziel existiert";
+        if (resolved is not { } target) return Lang.T("Ziel existiert", "target exists");
 
         Directory.CreateDirectory(Path.GetDirectoryName(target.Path)!);
         var progress = new ProgressTracker(item, target.Offset);
@@ -256,7 +257,7 @@ public sealed class TransferEngine : IAsyncDisposable
         if (_settings.Current.VerifySfvAfterDownload)
         {
             var check = SfvVerifier.VerifyAgainstSiblingSfv(target.Path);
-            if (check == false) throw new InvalidOperationException("CRC-Prüfung (SFV) fehlgeschlagen");
+            if (check == false) throw new InvalidOperationException(Lang.T("CRC-Prüfung (SFV) fehlgeschlagen", "CRC check (SFV) failed"));
         }
         return null;
     }
@@ -265,7 +266,7 @@ public sealed class TransferEngine : IAsyncDisposable
     {
         var site = RequireSite(item.Target);
         var local = new FileInfo(item.Source.Path);
-        if (!local.Exists) throw new FileNotFoundException("Lokale Datei fehlt", local.FullName);
+        if (!local.Exists) throw new FileNotFoundException(Lang.T("Lokale Datei fehlt", "Local file missing"), local.FullName);
         item.Size = local.Length;
 
         await using var conn = await _connections.RentAsync(site, ct).ConfigureAwait(false);
@@ -273,7 +274,7 @@ public sealed class TransferEngine : IAsyncDisposable
         var existing = await client.GetSizeAsync(item.Target.Path, ct).ConfigureAwait(false);
         var resolved = await ResolveExistingAsync(item, local.Length, existing, item.Target.Path,
             () => RemoteExistsAsync(client, item.Target.Path, ct), canResume: true).ConfigureAwait(false);
-        if (resolved is not { } target) return "Ziel existiert";
+        if (resolved is not { } target) return Lang.T("Ziel existiert", "target exists");
 
         var progress = new ProgressTracker(item, target.Offset);
         await using (var fs = new FileStream(local.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, useAsync: true))
@@ -297,7 +298,7 @@ public sealed class TransferEngine : IAsyncDisposable
         var sourceSite = RequireSite(item.Source);
         var targetSite = RequireSite(item.Target);
         if (sourceSite.Id == targetSite.Id && sourceSite.MaxConnections < 2)
-            throw new InvalidOperationException("FXP innerhalb einer Site braucht mindestens 2 Verbindungen");
+            throw new InvalidOperationException(Lang.T("FXP innerhalb einer Site braucht mindestens 2 Verbindungen", "FXP within one site needs at least 2 connections"));
 
         var (src, dst) = await RentPairAsync(sourceSite, targetSite, ct).ConfigureAwait(false);
         await using var _ = src;
@@ -307,7 +308,7 @@ public sealed class TransferEngine : IAsyncDisposable
         var existing = await dst.Client.GetSizeAsync(item.Target.Path, ct).ConfigureAwait(false);
         var resolved = await ResolveExistingAsync(item, item.Size, existing, item.Target.Path,
             () => RemoteExistsAsync(dst.Client, item.Target.Path, ct), canResume: true).ConfigureAwait(false);
-        if (resolved is not { } target) return "Ziel existiert";
+        if (resolved is not { } target) return Lang.T("Ziel existiert", "target exists");
 
         var key = (sourceSite.Id, targetSite.Id);
         _fxpCache.TryGetValue(key, out var cached);

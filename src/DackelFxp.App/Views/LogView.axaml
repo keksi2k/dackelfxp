@@ -7,10 +7,10 @@
              x:DataType="vm:LogViewModel">
   <DockPanel>
     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="4">
-      <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" MinWidth="180" />
-      <CheckBox Content="Automatisch scrollen" IsChecked="{Binding AutoScroll}" />
-      <Button Content="Leeren" Command="{Binding ClearCommand}" />
-      <Button Content="Speichern..." Command="{Binding SaveCommand}" />
+      <ComboBox Classes="enum" ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" MinWidth="180" />
+      <CheckBox Content="{DynamicResource Log_AutoScroll}" IsChecked="{Binding AutoScroll}" />
+      <Button Content="{DynamicResource Btn_Clear}" Command="{Binding ClearCommand}" />
+      <Button Content="{DynamicResource Btn_SaveAs}" Command="{Binding SaveCommand}" />
     </StackPanel>
     <ListBox x:Name="List" ItemsSource="{Binding Lines}" Padding="0" SelectionMode="Multiple">
       <ListBox.Styles>

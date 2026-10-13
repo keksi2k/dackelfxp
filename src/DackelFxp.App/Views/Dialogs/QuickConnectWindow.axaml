@@ -3,26 +3,26 @@
         xmlns:vm="using:DackelFxp.App.ViewModels"
         x:Class="DackelFxp.App.Views.Dialogs.QuickConnectWindow"
         x:DataType="vm:QuickConnectViewModel"
-        Title="Schnellverbindung" Width="460" SizeToContent="Height" CanResize="False"
+        Title="{DynamicResource Title_QuickConnect}" Width="460" SizeToContent="Height" CanResize="False"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
   <StackPanel Margin="14" Spacing="8">
-    <ComboBox ItemsSource="{Binding History}" SelectedItem="{Binding SelectedHistory}" PlaceholderText="Verlauf" HorizontalAlignment="Stretch" />
+    <ComboBox ItemsSource="{Binding History}" SelectedItem="{Binding SelectedHistory}" PlaceholderText="{DynamicResource Quick_History}" HorizontalAlignment="Stretch" />
     <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="10">
       <TextBlock Grid.Row="0" Text="Host" VerticalAlignment="Center" />
       <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,140" ColumnSpacing="6">
         <TextBox x:Name="HostBox" Text="{Binding Host}" PlaceholderText="ftp.example.org" />
         <NumericUpDown Grid.Column="1" Value="{Binding Port}" Minimum="1" Maximum="65535" FormatString="0" />
       </Grid>
-      <TextBlock Grid.Row="1" Text="Benutzer" VerticalAlignment="Center" />
+      <TextBlock Grid.Row="1" Text="{DynamicResource Lbl_User}" VerticalAlignment="Center" />
       <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding User}" />
-      <TextBlock Grid.Row="2" Text="Passwort" VerticalAlignment="Center" />
+      <TextBlock Grid.Row="2" Text="{DynamicResource Lbl_Password}" VerticalAlignment="Center" />
       <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Password}" PasswordChar="•" />
-      <TextBlock Grid.Row="3" Text="Verschlüsselung" VerticalAlignment="Center" />
-      <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{x:Static vm:QuickConnectViewModel.TlsModes}" SelectedItem="{Binding TlsMode}" HorizontalAlignment="Stretch" />
+      <TextBlock Grid.Row="3" Text="{DynamicResource Site_Encryption}" VerticalAlignment="Center" />
+      <ComboBox Classes="enum" Grid.Row="3" Grid.Column="1" ItemsSource="{x:Static vm:QuickConnectViewModel.TlsModes}" SelectedItem="{Binding TlsMode}" HorizontalAlignment="Stretch" />
     </Grid>
     <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" Margin="0,6,0,0">
-      <Button Content="Verbinden" Command="{Binding ConnectCommand}" IsDefault="True" />
-      <Button Content="Abbrechen" Command="{Binding CancelCommand}" IsCancel="True" />
+      <Button Content="{DynamicResource Btn_Connect}" Command="{Binding ConnectCommand}" IsDefault="True" />
+      <Button Content="{DynamicResource Btn_Cancel}" Command="{Binding CancelCommand}" IsCancel="True" />
     </StackPanel>
   </StackPanel>
 </Window>

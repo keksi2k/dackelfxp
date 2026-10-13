@@ -587,11 +587,11 @@ public sealed class FtpClient : IAsyncDisposable
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
-                throw new FtpException("Zeitüberschreitung auf der Datenverbindung");
+                throw new FtpException(Lang.T("Zeitüberschreitung auf der Datenverbindung", "Timeout on the data connection"));
             }
             catch (IOException ex)
             {
-                throw new FtpException($"Datenverbindung abgebrochen: {ex.Message}", ex);
+                throw new FtpException(Lang.T($"Datenverbindung abgebrochen: {ex.Message}", $"Data connection aborted: {ex.Message}"), ex);
             }
             total += read;
             _copiedBytes += read;
@@ -617,7 +617,7 @@ public sealed class FtpClient : IAsyncDisposable
                                    && Options.TlsProtocols == SslProtocols.None && _copiedBytes == 0
                                    && Tls12Hosts.TryAdd(HostKey, true))
         {
-            _control.WriteLog(FtpLogKind.Tls, "Datenverbindung mit TLS 1.3 abgelehnt (Session-Reuse) – verbinde neu mit TLS 1.2");
+            _control.WriteLog(FtpLogKind.Tls, Lang.T("Datenverbindung mit TLS 1.3 abgelehnt (Session-Reuse) – verbinde neu mit TLS 1.2", "Data connection with TLS 1.3 rejected (session reuse) – reconnecting with TLS 1.2"));
             var directory = WorkingDirectory;
             await _control.DisposeAsync().ConfigureAwait(false);
             await ConnectCoreAsync(ct).ConfigureAwait(false);

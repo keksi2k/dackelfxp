@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DackelFxp.App.ViewModels"
+             xmlns:settings="using:DackelFxp.Core.Settings"
+             x:Class="DackelFxp.App.Views.CommandBarView"
+             x:DataType="vm:CommandBarViewModel">
+  <DockPanel Margin="4" LastChildFill="True">
+    <ComboBox DockPanel.Dock="Left" ItemsSource="{Binding Targets}" SelectedItem="{Binding Target}" MinWidth="190" Margin="0,0,4,0"
+              ToolTip.Tip="{DynamicResource Cmd_TargetTip}">
+      <ComboBox.ItemTemplate>
+        <DataTemplate x:DataType="vm:BrowserPaneViewModel">
+          <TextBlock Text="{Binding DisplayLabel}" />
+        </DataTemplate>
+      </ComboBox.ItemTemplate>
+    </ComboBox>
+    <Menu DockPanel.Dock="Right" Margin="4,0,0,0">
+      <MenuItem Header="{DynamicResource Cmd_Custom}" ItemsSource="{Binding CustomCommands}">
+        <MenuItem.ItemContainerTheme>
+          <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="settings:CustomCommand">
+            <Setter Property="Header" Value="{Binding Name}" />
+            <Setter Property="Command" Value="{Binding $parent[UserControl].((vm:CommandBarViewModel)DataContext).RunCustomCommand}" />
+            <Setter Property="CommandParameter" Value="{Binding}" />
+          </ControlTheme>
+        </MenuItem.ItemContainerTheme>
+      </MenuItem>
+    </Menu>
+    <Button DockPanel.Dock="Right" Content="{DynamicResource Cmd_Send}" Command="{Binding SendCommand}" Margin="4,0,0,0" />
+    <TextBox x:Name="Input" Text="{Binding CommandText}" Classes="log" PlaceholderText="{DynamicResource Cmd_Placeholder}">
+      <TextBox.KeyBindings>
+        <KeyBinding Gesture="Enter" Command="{Binding SendCommand}" />
+      </TextBox.KeyBindings>
+    </TextBox>
+  </DockPanel>
+</UserControl>

@@ -1,3 +1,4 @@
+using DackelFxp.Ftp;
 using System.Security.Cryptography;
 using DackelFxp.Core.Infrastructure;
 
@@ -158,7 +159,7 @@ public sealed class SiteStore
 
     private void SaveCore()
     {
-        if (_protector is null) throw new InvalidOperationException("Site-Liste ist gesperrt (Master-Passwort)");
+        if (_protector is null) throw new InvalidOperationException(Lang.T("Site-Liste ist gesperrt (Master-Passwort)", "Site list is locked (master password)"));
         foreach (var site in _file.Sites)
             site.ProtectedPassword = _protector.Protect(site.Password);
         var persisted = new SitesFile

@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using DackelFxp.App.Converters;
 using DackelFxp.App.Services;
 using DackelFxp.Core.Queue;
+using DackelFxp.Ftp;
 
 namespace DackelFxp.App.ViewModels;
 
@@ -64,8 +65,17 @@ public sealed partial class QueueViewModel : ObservableObject
         }
         TotalSpeed = Formats.Speed(speed);
         var eta = speed > 0 ? TimeSpan.FromSeconds(remaining / speed) : (TimeSpan?)null;
-        Summary = $"{Items.Count} in Queue, {running} aktiv, {pending} wartend, {failed} Fehler, {Formats.Bytes(remaining)} übrig"
-                  + (eta is { } e ? $", ca. {e:hh\\:mm\\:ss}" : "");
+        var left = Formats.Bytes(remaining);
+        Summary = Lang.T($"{Items.Count} in Queue, {running} aktiv, {pending} wartend, {failed} Fehler, {left} übrig",
+                         $"{Items.Count} in queue, {running} active, {pending} pending, {failed} failed, {left} left")
+                  + (eta is { } e ? Lang.T($", ca. {e:hh\\:mm\\:ss}", $", approx. {e:hh\\:mm\\:ss}") : "");
+    }
+
+    /// <summary>Re-evaluates texts after a language switch.</summary>
+    public void RefreshTexts()
+    {
+        foreach (var item in Items) item.RefreshText();
+        UpdateSummary();
     }
 
     [RelayCommand]
@@ -87,7 +97,7 @@ public sealed partial class QueueViewModel : ObservableObject
     [RelayCommand]
     private async Task ClearAsync()
     {
-        if (await _services.Dialogs.ConfirmAsync("Queue leeren", "Alle nicht laufenden Einträge entfernen?"))
+        if (await _services.Dialogs.ConfirmAsync(Lang.T("Queue leeren", "Clear queue"), Lang.T("Alle nicht laufenden Einträge entfernen?", "Remove all entries that are not running?")))
             _queue.Clear();
     }
 
@@ -115,19 +125,19 @@ public sealed partial class QueueViewModel : ObservableObject
     [RelayCommand]
     private async Task SaveAsync()
     {
-        var file = await _services.Dialogs.PickSaveFileAsync("Queue speichern", "queue.json", "*.json");
+        var file = await _services.Dialogs.PickSaveFileAsync(Lang.T("Queue speichern", "Save queue"), "queue.json", "*.json");
         if (file is not null) _queue.Save(file);
     }
 
     [RelayCommand]
     private async Task LoadAsync()
     {
-        var file = await _services.Dialogs.PickOpenFileAsync("Queue laden", "*.json");
+        var file = await _services.Dialogs.PickOpenFileAsync(Lang.T("Queue laden", "Load queue"), "*.json");
         if (file is null) return;
         try { _queue.Load(file); }
         catch (Exception ex) when (ex is IOException or System.Text.Json.JsonException)
         {
-            await _services.Dialogs.ShowMessageAsync("Queue laden", "Datei konnte nicht gelesen werden: " + ex.Message);
+            await _services.Dialogs.ShowMessageAsync(Lang.T("Queue laden", "Load queue"), Lang.T("Datei konnte nicht gelesen werden: ", "File could not be read: ") + ex.Message);
         }
     }
 }

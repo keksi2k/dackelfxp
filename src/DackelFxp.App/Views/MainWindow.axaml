@@ -16,73 +16,99 @@
     <KeyBinding Gesture="F9" Command="{Binding Queue.StartCommand}" />
     <KeyBinding Gesture="Shift+F9" Command="{Binding Queue.StopCommand}" />
     <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenSettingsCommand}" />
+    <KeyBinding Gesture="Ctrl+K" Command="{Binding FocusCommandLineCommand}" />
   </Window.KeyBindings>
 
   <DockPanel>
-    <Menu DockPanel.Dock="Top">
-      <MenuItem Header="_Sites">
-        <MenuItem Header="Site-Manager..." InputGesture="F4" Command="{Binding OpenSiteManagerCommand}" />
-        <MenuItem Header="Schnellverbindung..." InputGesture="F8" Command="{Binding QuickConnectCommand}" />
-        <MenuItem Header="Verbinden mit" ItemsSource="{Binding Sites}">
-          <MenuItem.ItemContainerTheme>
-            <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="sites:Site">
-              <Setter Property="Header" Value="{Binding DisplayName}" />
-              <Setter Property="Command" Value="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ConnectSiteCommand}" />
-              <Setter Property="CommandParameter" Value="{Binding}" />
-            </ControlTheme>
-          </MenuItem.ItemContainerTheme>
+    <Border DockPanel.Dock="Top" Classes="line-bottom">
+      <Menu>
+        <MenuItem Header="{DynamicResource Menu_Sites}">
+          <MenuItem Header="{DynamicResource Menu_SiteManager}" InputGesture="F4" Command="{Binding OpenSiteManagerCommand}" />
+          <MenuItem Header="{DynamicResource Menu_QuickConnect}" InputGesture="F8" Command="{Binding QuickConnectCommand}" />
+          <MenuItem Header="{DynamicResource Menu_ConnectTo}" ItemsSource="{Binding Sites}">
+            <MenuItem.ItemContainerTheme>
+              <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="sites:Site">
+                <Setter Property="Header" Value="{Binding DisplayName}" />
+                <Setter Property="Command" Value="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ConnectSiteCommand}" />
+                <Setter Property="CommandParameter" Value="{Binding}" />
+              </ControlTheme>
+            </MenuItem.ItemContainerTheme>
+          </MenuItem>
+          <Separator />
+          <MenuItem Header="{DynamicResource Menu_DisconnectAll}" Command="{Binding DisconnectAllCommand}" />
+          <MenuItem Header="{DynamicResource Menu_MasterPassword}" Command="{Binding SetMasterPasswordCommand}" />
+          <Separator />
+          <MenuItem Header="{DynamicResource Menu_Exit}" Command="{Binding ExitCommand}" />
         </MenuItem>
-        <Separator />
-        <MenuItem Header="Alle Verbindungen trennen" Command="{Binding DisconnectAllCommand}" />
-        <MenuItem Header="Master-Passwort..." Command="{Binding SetMasterPasswordCommand}" />
-        <Separator />
-        <MenuItem Header="Beenden" Command="{Binding ExitCommand}" />
-      </MenuItem>
-      <MenuItem Header="_Queue">
-        <MenuItem Header="Starten" InputGesture="F9" Command="{Binding Queue.StartCommand}" />
-        <MenuItem Header="Stoppen" InputGesture="Shift+F9" Command="{Binding Queue.StopCommand}" />
-        <Separator />
-        <MenuItem Header="Fehlgeschlagene wiederholen" Command="{Binding Queue.RetryAllFailedCommand}" />
-        <MenuItem Header="Fertige entfernen" Command="{Binding Queue.RemoveFinishedCommand}" />
-        <MenuItem Header="Queue leeren" Command="{Binding Queue.ClearCommand}" />
-        <Separator />
-        <MenuItem Header="Queue speichern..." Command="{Binding Queue.SaveCommand}" />
-        <MenuItem Header="Queue laden..." Command="{Binding Queue.LoadCommand}" />
-      </MenuItem>
-      <MenuItem Header="_Werkzeuge">
-        <MenuItem Header="Ordner vergleichen" InputGesture="Ctrl+M" Command="{Binding CompareFoldersCommand}" />
-        <MenuItem Header="Vergleich aufheben" Command="{Binding ClearCompareCommand}" />
-        <MenuItem Header="Unterschiede in Queue (aktive Seite)" Command="{Binding TransferDifferencesCommand}" />
-        <Separator />
-        <MenuItem Header="Einstellungen..." InputGesture="Ctrl+O" Command="{Binding OpenSettingsCommand}" />
-      </MenuItem>
-      <MenuItem Header="_Hilfe">
-        <MenuItem Header="Über DackelFXP" Command="{Binding AboutCommand}" />
-      </MenuItem>
-    </Menu>
+        <MenuItem Header="{DynamicResource Menu_Queue}">
+          <MenuItem Header="{DynamicResource Menu_QueueStart}" InputGesture="F9" Command="{Binding Queue.StartCommand}" />
+          <MenuItem Header="{DynamicResource Menu_QueueStop}" InputGesture="Shift+F9" Command="{Binding Queue.StopCommand}" />
+          <Separator />
+          <MenuItem Header="{DynamicResource Menu_RetryFailed}" Command="{Binding Queue.RetryAllFailedCommand}" />
+          <MenuItem Header="{DynamicResource Menu_RemoveFinished}" Command="{Binding Queue.RemoveFinishedCommand}" />
+          <MenuItem Header="{DynamicResource Menu_ClearQueue}" Command="{Binding Queue.ClearCommand}" />
+          <Separator />
+          <MenuItem Header="{DynamicResource Menu_SaveQueue}" Command="{Binding Queue.SaveCommand}" />
+          <MenuItem Header="{DynamicResource Menu_LoadQueue}" Command="{Binding Queue.LoadCommand}" />
+        </MenuItem>
+        <MenuItem Header="{DynamicResource Menu_Tools}">
+          <MenuItem Header="{DynamicResource Menu_Compare}" InputGesture="Ctrl+M" Command="{Binding CompareFoldersCommand}" />
+          <MenuItem Header="{DynamicResource Menu_ClearCompare}" Command="{Binding ClearCompareCommand}" />
+          <MenuItem Header="{DynamicResource Menu_QueueDifferences}" Command="{Binding TransferDifferencesCommand}" />
+          <Separator />
+          <MenuItem Header="{DynamicResource Menu_CommandLine}" InputGesture="Ctrl+K" Command="{Binding FocusCommandLineCommand}" />
+          <Separator />
+          <MenuItem Header="{DynamicResource Menu_Settings}" InputGesture="Ctrl+O" Command="{Binding OpenSettingsCommand}" />
+          <MenuItem Header="{DynamicResource Menu_Language}">
+            <MenuItem Header="Deutsch" Command="{Binding SetLanguageCommand}" CommandParameter="de"
+                      ToggleType="Radio" IsChecked="{Binding IsGerman, Mode=OneWay}" />
+            <MenuItem Header="English" Command="{Binding SetLanguageCommand}" CommandParameter="en"
+                      ToggleType="Radio" IsChecked="{Binding !IsGerman, Mode=OneWay}" />
+          </MenuItem>
+        </MenuItem>
+        <MenuItem Header="{DynamicResource Menu_Help}">
+          <MenuItem Header="{DynamicResource Menu_About}" Command="{Binding AboutCommand}" />
+        </MenuItem>
+      </Menu>
+    </Border>
 
-    <Border DockPanel.Dock="Bottom" Padding="6,2" Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+    <Border DockPanel.Dock="Bottom" Classes="line-top" Padding="6,3" Background="{DynamicResource AreaHeaderBrush}">
       <DockPanel>
         <TextBlock DockPanel.Dock="Right" Text="{Binding Queue.TotalSpeed}" FontWeight="SemiBold" />
         <TextBlock Text="{Binding Queue.Summary}" Classes="muted" />
       </DockPanel>
     </Border>
 
-    <Grid RowDefinitions="*,4,240">
-      <Grid ColumnDefinitions="*,4,*">
-        <views:BrowserPaneView Grid.Column="0" DataContext="{Binding Left}" x:Name="LeftPane" />
+    <Grid RowDefinitions="*,7,250" Margin="4">
+      <Grid ColumnDefinitions="*,7,*">
+        <Border Grid.Column="0" Classes="area">
+          <views:BrowserPaneView DataContext="{Binding Left}" x:Name="LeftPane" />
+        </Border>
         <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
-        <views:BrowserPaneView Grid.Column="2" DataContext="{Binding Right}" x:Name="RightPane" />
+        <Border Grid.Column="2" Classes="area">
+          <views:BrowserPaneView DataContext="{Binding Right}" x:Name="RightPane" />
+        </Border>
       </Grid>
       <GridSplitter Grid.Row="1" ResizeDirection="Rows" />
-      <TabControl Grid.Row="2" Padding="0">
-        <TabItem Header="Queue">
-          <views:QueueView DataContext="{Binding Queue}" />
-        </TabItem>
-        <TabItem Header="Log">
-          <views:LogView DataContext="{Binding Log}" />
-        </TabItem>
-      </TabControl>
+      <Border Grid.Row="2" Classes="area">
+        <TabControl Padding="0" SelectedIndex="{Binding BottomTabIndex}">
+          <TabItem Header="{DynamicResource Tab_Queue}">
+            <Border Classes="line-top">
+              <views:QueueView DataContext="{Binding Queue}" />
+            </Border>
+          </TabItem>
+          <TabItem Header="{DynamicResource Tab_Log}">
+            <Border Classes="line-top">
+              <DockPanel>
+                <Border DockPanel.Dock="Bottom" Classes="line-top">
+                  <views:CommandBarView DataContext="{Binding CommandBar}" x:Name="CommandBar" />
+                </Border>
+                <views:LogView DataContext="{Binding Log}" />
+              </DockPanel>
+            </Border>
+          </TabItem>
+        </TabControl>
+      </Border>
     </Grid>
   </DockPanel>
 </Window>

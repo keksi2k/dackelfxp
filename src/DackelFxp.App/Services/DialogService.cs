@@ -10,6 +10,7 @@ using DackelFxp.Core.Connections;
 using DackelFxp.Core.Queue;
 using DackelFxp.Core.Rules;
 using DackelFxp.Core.Sites;
+using DackelFxp.Ftp;
 
 namespace DackelFxp.App.Services;
 
@@ -23,31 +24,31 @@ public sealed class DialogService
         await ShowAsync<bool>(title, message, [("OK", true)]);
     }
 
-    public async Task<bool> ConfirmAsync(string title, string message, string yes = "Ja", string no = "Nein") =>
-        await ShowAsync(title, message, [(yes, true), (no, false)]);
+    public async Task<bool> ConfirmAsync(string title, string message, string? yes = null, string? no = null) =>
+        await ShowAsync(title, message, [(yes ?? Lang.T("Ja", "Yes"), true), (no ?? Lang.T("Nein", "No"), false)]);
 
     public async Task<string?> PromptAsync(string title, string message, string? defaultValue = null, bool password = false)
     {
         var box = new TextBox { Text = defaultValue ?? "", MinWidth = 360 };
         if (password) box.PasswordChar = '•';
-        var ok = await ShowAsync(title, message, [("OK", true), ("Abbrechen", false)], box, focus: box);
+        var ok = await ShowAsync(title, message, [("OK", true), (Lang.T("Abbrechen", "Cancel"), false)], box, focus: box);
         return ok ? box.Text : null;
     }
 
     public async Task<CertificateDecision> AskCertificateAsync(Site site, X509Certificate2 cert, SslPolicyErrors errors)
     {
         var text =
-            $"Das Zertifikat von {site.DisplayName} ({site.Host}) ist nicht vertrauenswürdig.\n\n" +
-            $"Fehler: {errors}\n" +
-            $"Ausgestellt für: {cert.Subject}\n" +
-            $"Aussteller: {cert.Issuer}\n" +
-            $"Gültig: {cert.NotBefore:d} – {cert.NotAfter:d}\n" +
+            Lang.T($"Das Zertifikat von {site.DisplayName} ({site.Host}) ist nicht vertrauenswürdig.", $"The certificate of {site.DisplayName} ({site.Host}) is not trusted.") + "\n\n" +
+            Lang.T("Fehler", "Errors") + $": {errors}\n" +
+            Lang.T("Ausgestellt für", "Issued to") + $": {cert.Subject}\n" +
+            Lang.T("Aussteller", "Issuer") + $": {cert.Issuer}\n" +
+            Lang.T("Gültig", "Valid") + $": {cert.NotBefore:d} – {cert.NotAfter:d}\n" +
             $"SHA-256: {FormatFingerprint(ConnectionManager.Fingerprint(cert))}";
-        return await ShowAsync("Zertifikat prüfen", text,
+        return await ShowAsync(Lang.T("Zertifikat prüfen", "Verify certificate"), text,
         [
-            ("Immer vertrauen", CertificateDecision.AcceptAlways),
-            ("Nur diesmal", CertificateDecision.AcceptOnce),
-            ("Ablehnen", CertificateDecision.Reject),
+            (Lang.T("Immer vertrauen", "Always trust"), CertificateDecision.AcceptAlways),
+            (Lang.T("Nur diesmal", "Only this time"), CertificateDecision.AcceptOnce),
+            (Lang.T("Ablehnen", "Reject"), CertificateDecision.Reject),
         ]);
     }
 
@@ -56,15 +57,16 @@ public sealed class DialogService
 
     public async Task<(ExistsDecision? Decision, bool ApplyToAll)> AskFileExistsAsync(QueueItem item, long sourceSize, long targetSize)
     {
-        var applyAll = new CheckBox { Content = "Für alle weiteren Dateien übernehmen" };
-        var text = $"Die Zieldatei existiert bereits:\n{item.Target.Path}\n\n" +
-                   $"Quelle: {Converters.Formats.Bytes(sourceSize)}\nZiel:   {Converters.Formats.Bytes(targetSize)}";
-        var decision = await ShowAsync<ExistsDecision?>("Datei existiert", text,
+        var applyAll = new CheckBox { Content = Lang.T("Für alle weiteren Dateien übernehmen", "Apply to all further files") };
+        var text = Lang.T("Die Zieldatei existiert bereits:", "The target file already exists:") + $"\n{item.Target.Path}\n\n" +
+                   Lang.T("Quelle", "Source") + $": {Converters.Formats.Bytes(sourceSize)}\n" +
+                   Lang.T("Ziel", "Target") + $":   {Converters.Formats.Bytes(targetSize)}";
+        var decision = await ShowAsync<ExistsDecision?>(Lang.T("Datei existiert", "File exists"), text,
         [
-            ("Überschreiben", ExistsDecision.Overwrite),
-            ("Fortsetzen", ExistsDecision.Resume),
-            ("Umbenennen", ExistsDecision.Rename),
-            ("Überspringen", ExistsDecision.Skip),
+            (Lang.T("Überschreiben", "Overwrite"), ExistsDecision.Overwrite),
+            (Lang.T("Fortsetzen", "Resume"), ExistsDecision.Resume),
+            (Lang.T("Umbenennen", "Rename"), ExistsDecision.Rename),
+            (Lang.T("Überspringen", "Skip"), ExistsDecision.Skip),
         ], applyAll);
         return (decision, applyAll.IsChecked == true);
     }

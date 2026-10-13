@@ -42,7 +42,7 @@ public sealed class FtpControlConnection : IAsyncDisposable
 
     public async Task ConnectAsync(string host, int port, TimeSpan timeout, CancellationToken ct)
     {
-        WriteLog(FtpLogKind.Info, $"Verbinde mit {host}:{port} ...");
+        WriteLog(FtpLogKind.Info, Lang.T($"Verbinde mit {host}:{port} ...", $"Connecting to {host}:{port} ..."));
         var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(timeout);
@@ -53,24 +53,24 @@ public sealed class FtpControlConnection : IAsyncDisposable
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
             socket.Dispose();
-            throw new FtpConnectionException($"Zeitüberschreitung beim Verbinden mit {host}:{port}");
+            throw new FtpConnectionException(Lang.T($"Zeitüberschreitung beim Verbinden mit {host}:{port}", $"Timeout connecting to {host}:{port}"));
         }
         catch (SocketException ex)
         {
             socket.Dispose();
-            throw new FtpConnectionException($"Verbindung zu {host}:{port} fehlgeschlagen: {ex.Message}", ex);
+            throw new FtpConnectionException(Lang.T($"Verbindung zu {host}:{port} fehlgeschlagen: {ex.Message}", $"Connection to {host}:{port} failed: {ex.Message}"), ex);
         }
         _socket = socket;
         _stream = new NetworkStream(socket, ownsSocket: true);
-        WriteLog(FtpLogKind.Info, $"Verbunden mit {RemoteEndPoint}");
+        WriteLog(FtpLogKind.Info, Lang.T($"Verbunden mit {RemoteEndPoint}", $"Connected to {RemoteEndPoint}"));
     }
 
     /// <summary>Wraps the current stream in TLS (AUTH TLS or implicit FTPS).</summary>
     public async Task UpgradeToTlsAsync(string targetHost, RemoteCertificateValidationCallback validation, CancellationToken ct,
         SslProtocols protocols = SslProtocols.None)
     {
-        if (_stream is null) throw new FtpConnectionException("Nicht verbunden");
-        if (_bufferEnd != _bufferStart) throw new FtpException("Unerwartete Daten vor dem TLS-Handshake");
+        if (_stream is null) throw new FtpConnectionException(Lang.T("Nicht verbunden", "Not connected"));
+        if (_bufferEnd != _bufferStart) throw new FtpException(Lang.T("Unerwartete Daten vor dem TLS-Handshake", "Unexpected data before the TLS handshake"));
 
         var ssl = new SslStream(_stream, leaveInnerStreamOpen: false);
         try
@@ -81,12 +81,12 @@ public sealed class FtpControlConnection : IAsyncDisposable
         {
             await ssl.DisposeAsync().ConfigureAwait(false);
             _stream = null;
-            throw new FtpConnectionException($"TLS-Handshake fehlgeschlagen: {ex.Message}", ex);
+            throw new FtpConnectionException(Lang.T($"TLS-Handshake fehlgeschlagen: {ex.Message}", $"TLS handshake failed: {ex.Message}"), ex);
         }
         _stream = ssl;
         RemoteCertificate = ssl.RemoteCertificate as X509Certificate2
             ?? (ssl.RemoteCertificate is null ? null : X509CertificateLoader.LoadCertificate(ssl.RemoteCertificate.GetRawCertData()));
-        WriteLog(FtpLogKind.Tls, $"TLS aktiv: {ssl.SslProtocol}, {ssl.NegotiatedCipherSuite}");
+        WriteLog(FtpLogKind.Tls, Lang.T($"TLS aktiv: {ssl.SslProtocol}, {ssl.NegotiatedCipherSuite}", $"TLS active: {ssl.SslProtocol}, {ssl.NegotiatedCipherSuite}"));
     }
 
     /// <summary>Drops TLS on the control channel after CCC.</summary>
@@ -95,7 +95,7 @@ public sealed class FtpControlConnection : IAsyncDisposable
         if (_stream is not SslStream ssl || _socket is null) return;
         try { await ssl.ShutdownAsync().ConfigureAwait(false); } catch (IOException) { }
         _stream = new NetworkStream(_socket, ownsSocket: true);
-        WriteLog(FtpLogKind.Tls, "Steuerkanal unverschlüsselt (CCC)");
+        WriteLog(FtpLogKind.Tls, Lang.T("Steuerkanal unverschlüsselt (CCC)", "Control channel unencrypted (CCC)"));
     }
 
     /// <summary>Sends a command and waits for the final (non-1xx) reply.</summary>
@@ -143,7 +143,7 @@ public sealed class FtpControlConnection : IAsyncDisposable
 
     private async Task SendCoreAsync(string command, CancellationToken ct)
     {
-        var stream = _stream ?? throw new FtpConnectionException("Nicht verbunden");
+        var stream = _stream ?? throw new FtpConnectionException(Lang.T("Nicht verbunden", "Not connected"));
         WriteLog(FtpLogKind.Command, MaskCommand(command));
         var bytes = Encoding.GetBytes(command + "\r\n");
         try
@@ -153,7 +153,7 @@ public sealed class FtpControlConnection : IAsyncDisposable
         }
         catch (Exception ex) when (ex is IOException or SocketException or ObjectDisposedException)
         {
-            throw new FtpConnectionException($"Senden fehlgeschlagen: {ex.Message}", ex);
+            throw new FtpConnectionException(Lang.T($"Senden fehlgeschlagen: {ex.Message}", $"Send failed: {ex.Message}"), ex);
         }
     }
 
@@ -163,7 +163,7 @@ public sealed class FtpControlConnection : IAsyncDisposable
         var first = await ReadLineAsync(ct).ConfigureAwait(false);
         lines.Add(first);
         if (first.Length < 3 || !int.TryParse(first.AsSpan(0, 3), out var code))
-            throw new FtpConnectionException($"Ungültige Antwort vom Server: '{first}'");
+            throw new FtpConnectionException(Lang.T($"Ungültige Antwort vom Server: '{first}'", $"Invalid reply from server: '{first}'"));
 
         if (first.Length > 3 && first[3] == '-')
         {
@@ -187,7 +187,7 @@ public sealed class FtpControlConnection : IAsyncDisposable
 
     private async Task<string> ReadLineAsync(CancellationToken ct)
     {
-        var stream = _stream ?? throw new FtpConnectionException("Nicht verbunden");
+        var stream = _stream ?? throw new FtpConnectionException(Lang.T("Nicht verbunden", "Not connected"));
         using var line = new MemoryStream();
         while (true)
         {
@@ -213,13 +213,13 @@ public sealed class FtpControlConnection : IAsyncDisposable
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
-                throw new FtpConnectionException("Zeitüberschreitung beim Warten auf die Serverantwort");
+                throw new FtpConnectionException(Lang.T("Zeitüberschreitung beim Warten auf die Serverantwort", "Timeout waiting for the server reply"));
             }
             catch (Exception ex) when (ex is IOException or SocketException or ObjectDisposedException)
             {
-                throw new FtpConnectionException($"Verbindung verloren: {ex.Message}", ex);
+                throw new FtpConnectionException(Lang.T($"Verbindung verloren: {ex.Message}", $"Connection lost: {ex.Message}"), ex);
             }
-            if (read == 0) throw new FtpConnectionException("Verbindung vom Server geschlossen");
+            if (read == 0) throw new FtpConnectionException(Lang.T("Verbindung vom Server geschlossen", "Connection closed by server"));
             _bufferEnd = read;
         }
     }

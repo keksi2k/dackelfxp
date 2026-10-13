@@ -18,13 +18,17 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public MainWindowViewModel(AppServices services)
     {
         _services = services;
-        Left = new BrowserPaneViewModel(services, "Links") { TransferHandler = TransferAsync, ExternalDropHandler = UploadDroppedAsync };
-        Right = new BrowserPaneViewModel(services, "Rechts") { TransferHandler = TransferAsync, ExternalDropHandler = UploadDroppedAsync };
+        Left = new BrowserPaneViewModel(services, isLeft: true) { TransferHandler = TransferAsync, ExternalDropHandler = UploadDroppedAsync };
+        Right = new BrowserPaneViewModel(services, isLeft: false) { TransferHandler = TransferAsync, ExternalDropHandler = UploadDroppedAsync };
         Left.Other = Right;
         Right.Other = Left;
         Left.IsActive = true;
+        Left.ShowLog = Right.ShowLog = () => BottomTabIndex = 1;
         Queue = new QueueViewModel(services);
         Log = new LogViewModel(services);
+        CommandBar = new CommandBarViewModel(services, Left, Right);
+
+        Lang.Changed += () => Dispatcher.UIThread.Post(OnLanguageChanged);
 
         services.Sites.Changed += () => Dispatcher.UIThread.Post(() =>
         {
@@ -41,6 +45,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public BrowserPaneViewModel Right { get; }
     public QueueViewModel Queue { get; }
     public LogViewModel Log { get; }
+    public CommandBarViewModel CommandBar { get; }
+
+    /// <summary>0 = queue, 1 = log.</summary>
+    [ObservableProperty] public partial int BottomTabIndex { get; set; }
+
+    public bool IsGerman => Lang.German;
     public IReadOnlyList<Site> Sites => _services.Sites.Sites.OrderBy(s => s.Group).ThenBy(s => s.Name).ToList();
 
     public BrowserPaneViewModel ActivePane => Left.IsActive ? Left : Right;
@@ -76,17 +86,17 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is IOException or System.Text.Json.JsonException)
         {
-            _services.Log.AddError("Queue", "Gespeicherte Queue nicht lesbar: " + ex.Message);
+            _services.Log.AddError("Queue", Lang.T("Gespeicherte Queue nicht lesbar: ", "Saved queue unreadable: ") + ex.Message);
         }
         _services.Scheduler.Start();
-        _services.Log.AddInfo("DackelFXP", $"Bereit. Konfiguration: {_services.Paths.Root}");
+        _services.Log.AddInfo("DackelFXP", Lang.T($"Bereit. Konfiguration: {_services.Paths.Root}", $"Ready. Configuration: {_services.Paths.Root}"));
 
         // --left / --right <site name>: connect at startup.
         foreach (var (option, pane) in new[] { ("left", Left), ("right", Right) })
         {
             if (Program.Option(option) is not { } name) continue;
             var site = _services.Sites.Sites.FirstOrDefault(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-            if (site is null) _services.Log.AddError("DackelFXP", $"Site '{name}' nicht gefunden");
+            if (site is null) _services.Log.AddError("DackelFXP", Lang.T($"Site '{name}' nicht gefunden", $"Site '{name}' not found"));
             else await pane.ConnectAsync(site);
         }
     }
@@ -95,10 +105,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         for (var attempt = 0; attempt < 5; attempt++)
         {
-            var password = await _services.Dialogs.PromptAsync("Master-Passwort", "Master-Passwort für die Site-Liste:", password: true);
+            var password = await _services.Dialogs.PromptAsync(Lang.T("Master-Passwort", "Master password"), Lang.T("Master-Passwort für die Site-Liste:", "Master password for the site list:"), password: true);
             if (password is null) return false;
             if (_services.Sites.Unlock(password)) return true;
-            await _services.Dialogs.ShowMessageAsync("Master-Passwort", "Falsches Passwort.");
+            await _services.Dialogs.ShowMessageAsync(Lang.T("Master-Passwort", "Master password"), Lang.T("Falsches Passwort.", "Wrong password."));
         }
         return false;
     }
@@ -110,7 +120,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         var to = from.Other!;
         if (!from.IsRemote && !to.IsRemote)
         {
-            await _services.Dialogs.ShowMessageAsync("Übertragen", "Beide Seiten sind lokal. Bitte auf einer Seite mit einer Site verbinden.");
+            await _services.Dialogs.ShowMessageAsync(Lang.T("Übertragen", "Transfer"), Lang.T("Beide Seiten sind lokal. Bitte auf einer Seite mit einer Site verbinden.", "Both panes are local. Please connect one pane to a site."));
             return;
         }
         if (from.CurrentPath.Length == 0 || to.CurrentPath.Length == 0) return;
@@ -155,7 +165,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private void OnQueueCompleted()
     {
-        _services.Log.AddInfo("Queue", "Queue abgearbeitet");
+        _services.Log.AddInfo("Queue", Lang.T("Queue abgearbeitet", "Queue finished"));
         _ = Left.RefreshAsync();
         _ = Right.RefreshAsync();
         if (_services.Settings.Current.OnQueueComplete == CompletionAction.Exit) CloseRequested?.Invoke();
@@ -163,7 +173,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private void OnSchedule(ScheduleEntry entry)
     {
-        _services.Log.AddInfo("Planer", $"Ausgelöst: {entry.Name} ({entry.Action})");
+        _services.Log.AddInfo(Lang.T("Planer", "Scheduler"), Lang.T($"Ausgelöst: {entry.Name} ({entry.Action})", $"Triggered: {entry.Name} ({entry.Action})"));
         if (entry.Action == ScheduleAction.StopQueue)
         {
             _ = _services.Engine.StopAsync();
@@ -203,12 +213,40 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private Task ConnectSiteAsync(Site site) => ActivePane.ConnectAsync(site);
 
     [RelayCommand]
+    private void FocusCommandLine()
+    {
+        BottomTabIndex = 1;
+        if (ActivePane.IsRemote) CommandBar.Target = ActivePane;
+        CommandBar.RequestFocus();
+    }
+
+    [RelayCommand]
+    private void SetLanguage(string code)
+    {
+        _services.Settings.Current.Language = code;
+        _services.Settings.Save();
+        Lang.Code = code;
+    }
+
+    private void OnLanguageChanged()
+    {
+        App.ApplyLanguage();
+        OnPropertyChanged(nameof(IsGerman));
+        Left.RefreshTexts();
+        Right.RefreshTexts();
+        Queue.RefreshTexts();
+        Log.RefreshTexts();
+    }
+
+    [RelayCommand]
     private async Task OpenSettingsAsync()
     {
         var vm = new SettingsViewModel(_services);
         await _services.Dialogs.ShowDialogAsync(new SettingsWindow { DataContext = vm });
         Left.NotifySitesChanged();
         Right.NotifySitesChanged();
+        CommandBar.RefreshCustomCommands();
+        Lang.Code = _services.Settings.Current.Language;
     }
 
     [RelayCommand]
@@ -220,7 +258,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         foreach (var e in Left.AllEntries) e.Compare = left.TryGetValue(e.Name, out var s) ? s : null;
         foreach (var e in Right.AllEntries) e.Compare = right.TryGetValue(e.Name, out var s) ? s : null;
         var diff = left.Values.Count(v => v != CompareStatus.Same) + right.Values.Count(v => v == CompareStatus.OnlyRight);
-        _services.Log.AddInfo("Vergleich", $"{Left.CurrentPath} ↔ {Right.CurrentPath}: {diff} Unterschiede");
+        _services.Log.AddInfo(Lang.T("Vergleich", "Compare"), Lang.T($"{Left.CurrentPath} ↔ {Right.CurrentPath}: {diff} Unterschiede", $"{Left.CurrentPath} ↔ {Right.CurrentPath}: {diff} differences"));
     }
 
     [RelayCommand]
@@ -240,41 +278,36 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private async Task SetMasterPasswordAsync()
     {
-        var password = await _services.Dialogs.PromptAsync("Master-Passwort",
-            "Neues Master-Passwort (leer lassen zum Entfernen).\nOhne Master-Passwort wird ein lokaler Schlüssel verwendet.", password: true);
+        var password = await _services.Dialogs.PromptAsync(Lang.T("Master-Passwort", "Master password"),
+            Lang.T("Neues Master-Passwort (leer lassen zum Entfernen).\nOhne Master-Passwort wird ein lokaler Schlüssel verwendet.",
+                "New master password (leave empty to remove).\nWithout a master password a local key file is used."), password: true);
         if (password is null) return;
         if (password.Length > 0)
         {
-            var repeat = await _services.Dialogs.PromptAsync("Master-Passwort", "Passwort wiederholen:", password: true);
+            var repeat = await _services.Dialogs.PromptAsync(Lang.T("Master-Passwort", "Master password"), Lang.T("Passwort wiederholen:", "Repeat password:"), password: true);
             if (repeat != password)
             {
-                await _services.Dialogs.ShowMessageAsync("Master-Passwort", "Die Passwörter stimmen nicht überein.");
+                await _services.Dialogs.ShowMessageAsync(Lang.T("Master-Passwort", "Master password"), Lang.T("Die Passwörter stimmen nicht überein.", "The passwords do not match."));
                 return;
             }
         }
         _services.Sites.SetMasterPassword(password.Length == 0 ? null : password);
-        await _services.Dialogs.ShowMessageAsync("Master-Passwort", password.Length == 0 ? "Master-Passwort entfernt." : "Master-Passwort gesetzt.");
+        await _services.Dialogs.ShowMessageAsync(Lang.T("Master-Passwort", "Master password"), password.Length == 0 ? Lang.T("Master-Passwort entfernt.", "Master password removed.") : Lang.T("Master-Passwort gesetzt.", "Master password set."));
     }
 
     [RelayCommand]
     private async Task DisconnectAllAsync()
     {
         await _services.Connections.DisconnectAllAsync();
-        _services.Log.AddInfo("DackelFXP", "Alle Verbindungen getrennt");
+        _services.Log.AddInfo("DackelFXP", Lang.T("Alle Verbindungen getrennt", "All connections closed"));
     }
 
     [RelayCommand]
-    private Task AboutAsync() => _services.Dialogs.ShowMessageAsync("Über DackelFXP",
+    private Task AboutAsync() => _services.Dialogs.ShowMessageAsync(Lang.T("Über DackelFXP", "About DackelFXP"),
         $"DackelFXP – FTP/FTPS/FXP-Client\n.NET {Environment.Version}, {System.Runtime.InteropServices.RuntimeInformation.OSDescription}\n\n" +
-        "Unterstützt: FTP, FTPS (explizit/implizit), Secure FXP (SSCN/CPSV), PRET, MLSD/STAT -l, Queue, Skiplisten, Planer.");
+        Lang.T("Unterstützt: FTP, FTPS (explizit/implizit), Secure FXP (SSCN/CPSV), PRET, MLSD/STAT -l, Queue, Skiplisten, Planer.", "Supports: FTP, FTPS (explicit/implicit), secure FXP (SSCN/CPSV), PRET, MLSD/STAT -l, queue, skiplists, scheduler."));
 
     [RelayCommand]
     private void Exit() => CloseRequested?.Invoke();
 
-    public static string TlsModeText(FtpTlsMode mode) => mode switch
-    {
-        FtpTlsMode.Explicit => "FTPS explizit (AUTH TLS)",
-        FtpTlsMode.Implicit => "FTPS implizit",
-        _ => "FTP (unverschlüsselt)",
-    };
 }

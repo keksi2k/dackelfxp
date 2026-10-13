@@ -9,7 +9,7 @@ public class FtpException : Exception
 public sealed class FtpCommandException : FtpException
 {
     public FtpCommandException(string command, FtpReply reply)
-        : base($"'{command}' fehlgeschlagen: {reply.Code} {reply.Message}")
+        : base(Lang.T($"'{command}' fehlgeschlagen: {reply.Code} {reply.Message}", $"'{command}' failed: {reply.Code} {reply.Message}"))
     {
         Command = command;
         Reply = reply;

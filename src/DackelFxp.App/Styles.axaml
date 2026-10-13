@@ -1,11 +1,77 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="using:DackelFxp.App.Converters">
   <Styles.Resources>
-    <StreamGeometry x:Key="FolderIcon">M2,5 C2,4.4 2.4,4 3,4 L9,4 L11,6 L21,6 C21.6,6 22,6.4 22,7 L22,19 C22,19.6 21.6,20 21,20 L3,20 C2.4,20 2,19.6 2,19 Z</StreamGeometry>
-    <StreamGeometry x:Key="FileIcon">M6,2 L14,2 L20,8 L20,22 L6,22 Z M14,2 L14,8 L20,8</StreamGeometry>
-    <StreamGeometry x:Key="LinkIcon">M10,14 L14,10 M8,16 C6,18 3,15 5,13 L8,10 M16,8 C18,6 21,9 19,11 L16,14</StreamGeometry>
-    <StreamGeometry x:Key="DriveIcon">M2,8 L22,8 L22,18 L2,18 Z M17,13 L19,13</StreamGeometry>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="AreaLineBrush" Color="#3C3C3C" />
+          <SolidColorBrush x:Key="AreaHeaderBrush" Color="#1E1E1E" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="AreaLineBrush" Color="#D0D0D0" />
+          <SolidColorBrush x:Key="AreaHeaderBrush" Color="#F3F3F3" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+      <DataTemplate x:Key="EnumTemplate" x:DataType="x:Object">
+        <TextBlock Text="{Binding Converter={x:Static conv:EnumText.Instance}}" />
+      </DataTemplate>
+      <StreamGeometry x:Key="FolderIcon">M2,5 C2,4.4 2.4,4 3,4 L9,4 L11,6 L21,6 C21.6,6 22,6.4 22,7 L22,19 C22,19.6 21.6,20 21,20 L3,20 C2.4,20 2,19.6 2,19 Z</StreamGeometry>
+      <StreamGeometry x:Key="FileIcon">M6,2 L14,2 L20,8 L20,22 L6,22 Z M14,2 L14,8 L20,8</StreamGeometry>
+      <StreamGeometry x:Key="LinkIcon">M10,14 L14,10 M8,16 C6,18 3,15 5,13 L8,10 M16,8 C18,6 21,9 19,11 L16,14</StreamGeometry>
+      <StreamGeometry x:Key="DriveIcon">M2,8 L22,8 L22,18 L2,18 Z M17,13 L19,13</StreamGeometry>
+    </ResourceDictionary>
   </Styles.Resources>
+
+  <!-- Fine 1px frame around each area (panes, queue/log, dialogs). -->
+  <Style Selector="Border.area">
+    <Setter Property="BorderBrush" Value="{DynamicResource AreaLineBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <!-- Separator lines inside an area. -->
+  <Style Selector="Border.line-bottom">
+    <Setter Property="BorderBrush" Value="{DynamicResource AreaLineBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+  <Style Selector="Border.line-top">
+    <Setter Property="BorderBrush" Value="{DynamicResource AreaLineBrush}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+
+  <!-- Splitters: wide transparent grip area, thin line in the middle, accent on hover/drag. -->
+  <Style Selector="GridSplitter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}">
+          <Border Name="PART_Line" Background="{DynamicResource AreaLineBrush}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="GridSplitter[ResizeDirection=Columns] /template/ Border#PART_Line">
+    <Setter Property="Width" Value="1" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="GridSplitter[ResizeDirection=Rows] /template/ Border#PART_Line">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="GridSplitter:pointerover /template/ Border#PART_Line, GridSplitter:pressed /template/ Border#PART_Line">
+    <Setter Property="Background" Value="{DynamicResource SystemAccentColor}" />
+  </Style>
+  <Style Selector="GridSplitter[ResizeDirection=Columns]:pointerover /template/ Border#PART_Line">
+    <Setter Property="Width" Value="3" />
+  </Style>
+  <Style Selector="GridSplitter[ResizeDirection=Rows]:pointerover /template/ Border#PART_Line">
+    <Setter Property="Height" Value="3" />
+  </Style>
+
+  <!-- Combo boxes over enum values show localized texts. -->
+  <Style Selector="ComboBox.enum">
+    <Setter Property="ItemTemplate" Value="{StaticResource EnumTemplate}" />
+  </Style>
 
   <Style Selector="DataGrid">
     <Setter Property="GridLinesVisibility" Value="None" />
@@ -14,10 +80,13 @@
     <Setter Property="IsReadOnly" Value="True" />
     <Setter Property="RowHeight" Value="22" />
     <Setter Property="FontSize" Value="12" />
+    <Setter Property="BorderThickness" Value="0" />
   </Style>
   <Style Selector="DataGridColumnHeader">
     <Setter Property="FontSize" Value="12" />
     <Setter Property="MinHeight" Value="24" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AreaLineBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
   </Style>
   <Style Selector="TabControl > TabItem">
     <Setter Property="FontSize" Value="14" />
@@ -28,18 +97,17 @@
     <Setter Property="FontFamily" Value="Cascadia Mono,Consolas,DejaVu Sans Mono,Liberation Mono,monospace" />
     <Setter Property="FontSize" Value="12" />
   </Style>
+  <Style Selector="TextBox.log">
+    <Setter Property="FontFamily" Value="Cascadia Mono,Consolas,DejaVu Sans Mono,Liberation Mono,monospace" />
+  </Style>
   <Style Selector="TextBlock.muted">
     <Setter Property="Opacity" Value="0.7" />
   </Style>
   <Style Selector="Border.pane-header">
     <Setter Property="Padding" Value="4" />
-    <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
+    <Setter Property="Background" Value="{DynamicResource AreaHeaderBrush}" />
   </Style>
   <Style Selector="Border.pane-header.active">
     <Setter Property="Background" Value="{DynamicResource SystemControlHighlightListAccentLowBrush}" />
-  </Style>
-  <Style Selector="Label.form">
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Margin" Value="0,0,8,0" />
   </Style>
 </Styles>

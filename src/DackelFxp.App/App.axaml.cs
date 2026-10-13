@@ -7,6 +7,8 @@ using DackelFxp.App.Services;
 using DackelFxp.App.ViewModels;
 using DackelFxp.App.Views;
 using DackelFxp.Core.Infrastructure;
+using DackelFxp.Ftp;
+using Avalonia.Controls;
 
 namespace DackelFxp.App;
 
@@ -24,6 +26,7 @@ public partial class App : Application
         {
             Services = new AppServices();
             ApplyTheme(Services.Settings.Current.Theme);
+            ApplyLanguage();
 
             var window = new MainWindow();
             Services.Dialogs.Owner = window;
@@ -35,6 +38,20 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static ResourceDictionary? _texts;
+
+    /// <summary>Publishes the UI texts of the current language as resources (XAML uses DynamicResource, so it updates live).</summary>
+    public static void ApplyLanguage()
+    {
+        if (Current is null) return;
+        var texts = new ResourceDictionary();
+        foreach (var (key, (de, en)) in UiText.Entries) texts[key] = Lang.German ? de : en;
+        var merged = Current.Resources.MergedDictionaries;
+        if (_texts is not null) merged.Remove(_texts);
+        merged.Add(texts);
+        _texts = texts;
     }
 
     public static void ApplyTheme(string theme)

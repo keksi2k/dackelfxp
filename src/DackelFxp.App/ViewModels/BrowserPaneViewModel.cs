@@ -8,6 +8,7 @@ using DackelFxp.Core.Browsing;
 using DackelFxp.Core.Settings;
 using DackelFxp.Core.Sites;
 using DackelFxp.Core.Tools;
+using DackelFxp.Ftp;
 using DackelFxp.Ftp.Protocol;
 
 namespace DackelFxp.App.ViewModels;
@@ -20,14 +21,21 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
     private List<FileEntryViewModel> _all = [];
     private CancellationTokenSource? _listCts;
 
-    public BrowserPaneViewModel(AppServices services, string name)
+    private readonly bool _isLeft;
+
+    public BrowserPaneViewModel(AppServices services, bool isLeft)
     {
         _services = services;
-        Name = name;
+        _isLeft = isLeft;
         Browser = new LocalBrowser();
     }
 
-    public string Name { get; }
+    public string Name => _isLeft ? Lang.T("Links", "Left") : Lang.T("Rechts", "Right");
+    /// <summary>"Left: SiteName" for the command line target selection.</summary>
+    public string DisplayLabel => $"{Name}: {Title}";
+
+    /// <summary>Set by the main view model: bring the log into view (command output).</summary>
+    public Action? ShowLog { get; set; }
     public BrowserPaneViewModel? Other { get; set; }
 
     /// <summary>Set by the main view model: transfer the given entries to the other pane.</summary>
@@ -37,7 +45,7 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
     public Func<BrowserPaneViewModel, IReadOnlyList<string>, Task>? ExternalDropHandler { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Title), nameof(IsRemote), nameof(Site), nameof(Bookmarks))]
+    [NotifyPropertyChangedFor(nameof(Title), nameof(IsRemote), nameof(Site), nameof(Bookmarks), nameof(DisplayLabel), nameof(CustomCommands))]
     public partial IBrowser Browser { get; private set; }
 
     public string Title => Browser.Title;
@@ -64,6 +72,16 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
     public IReadOnlyList<CustomCommand> CustomCommands =>
         _services.Settings.Current.CustomCommands.Where(c => c.SiteId is null || c.SiteId == Site?.Id).ToList();
 
+    /// <summary>Re-evaluates texts after a language switch.</summary>
+    public void RefreshTexts()
+    {
+        OnPropertyChanged(nameof(Name));
+        OnPropertyChanged(nameof(DisplayLabel));
+        OnPropertyChanged(nameof(Title));
+        if (CurrentPath.Length == 0 && !IsRemote) PathText = Lang.T("Laufwerke", "Drives");
+        UpdateStatus();
+    }
+
     public void NotifySitesChanged()
     {
         OnPropertyChanged(nameof(Sites));
@@ -89,7 +107,7 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
         Items.Clear();
         CurrentPath = "";
         PathText = "";
-        await RunAsync($"Verbinde mit {site.DisplayName}...", async ct =>
+        await RunAsync(Lang.T($"Verbinde mit {site.DisplayName}...", $"Connecting to {site.DisplayName}..."), async ct =>
         {
             var home = await Browser.GetHomeAsync(ct);
             await LoadCoreAsync(home, ct);
@@ -112,7 +130,7 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
     {
         if (Browser is not RemoteBrowser remote) return;
         await remote.DisconnectAsync();
-        _services.Log.AddInfo(remote.Title, "Getrennt");
+        _services.Log.AddInfo(remote.Title, Lang.T("Getrennt", "Disconnected"));
         await ConnectLocalAsync();
     }
 
@@ -161,7 +179,7 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
     private async Task AddBookmarkAsync()
     {
         if (Site is not { } site) return;
-        var name = await _services.Dialogs.PromptAsync("Lesezeichen", "Name des Lesezeichens:", FtpPath.GetName(CurrentPath));
+        var name = await _services.Dialogs.PromptAsync(Lang.T("Lesezeichen", "Bookmark"), Lang.T("Name des Lesezeichens:", "Bookmark name:"), FtpPath.GetName(CurrentPath));
         if (string.IsNullOrWhiteSpace(name)) return;
         site.Bookmarks.Add(new Bookmark { Name = name, RemotePath = CurrentPath, LocalPath = Other is { IsRemote: false } o ? o.CurrentPath : null });
         if (!site.IsTemporary) _services.Sites.AddOrUpdate(site);
@@ -181,7 +199,7 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
         var isDriveList = !IsRemote && actual.Length == 0;
         _all = entries.Select(e => new FileEntryViewModel(e, isDriveList)).ToList();
         CurrentPath = actual;
-        PathText = actual.Length == 0 ? "Laufwerke" : actual;
+        PathText = actual.Length == 0 ? Lang.T("Laufwerke", "Drives") : actual;
         if (!IsRemote && actual.Length > 0) _services.Settings.Current.LastLocalPath = actual;
         ApplyFilter();
     }
@@ -196,9 +214,15 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
                      .OrderByDescending(e => e.IsDirectory)
                      .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase))
             Items.Add(item);
+        UpdateStatus();
+    }
+
+    private void UpdateStatus()
+    {
         var files = _all.Count(e => !e.IsDirectory);
         var dirs = _all.Count - files;
-        StatusText = $"{dirs} Ordner, {files} Dateien, {Formats.Bytes(_all.Where(e => !e.IsDirectory).Sum(e => e.Entry.Size))}";
+        var size = Formats.Bytes(_all.Where(e => !e.IsDirectory).Sum(e => e.Entry.Size));
+        StatusText = Lang.T($"{dirs} Ordner, {files} Dateien, {size}", $"{dirs} folders, {files} files, {size}");
     }
 
     // ---------------------------------------------------------------- file operations
@@ -206,7 +230,7 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
     [RelayCommand]
     private async Task MakeDirectoryAsync()
     {
-        var name = await _services.Dialogs.PromptAsync("Neuer Ordner", "Name des neuen Ordners:");
+        var name = await _services.Dialogs.PromptAsync(Lang.T("Neuer Ordner", "New folder"), Lang.T("Name des neuen Ordners:", "Name of the new folder:"));
         if (string.IsNullOrWhiteSpace(name)) return;
         await RunAsync(null, async ct =>
         {
@@ -220,9 +244,9 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
     {
         var selected = Selection.Where(e => !e.IsDrive).ToList();
         if (selected.Count == 0) return;
-        var what = selected.Count == 1 ? $"'{selected[0].Name}'" : $"{selected.Count} Einträge";
-        if (!await _services.Dialogs.ConfirmAsync("Löschen", $"{what} wirklich löschen? Ordner werden mit Inhalt gelöscht.")) return;
-        await RunAsync($"Lösche {what}...", async ct =>
+        var what = selected.Count == 1 ? $"'{selected[0].Name}'" : Lang.T($"{selected.Count} Einträge", $"{selected.Count} entries");
+        if (!await _services.Dialogs.ConfirmAsync(Lang.T("Löschen", "Delete"), Lang.T($"{what} wirklich löschen? Ordner werden mit Inhalt gelöscht.", $"Really delete {what}? Folders are deleted including their contents."))) return;
+        await RunAsync(Lang.T($"Lösche {what}...", $"Deleting {what}..."), async ct =>
         {
             foreach (var entry in selected)
                 await Browser.DeleteAsync(Browser.Combine(CurrentPath, entry.Name), entry.IsDirectory, ct);
@@ -234,7 +258,7 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
     private async Task RenameAsync()
     {
         if (Selection.FirstOrDefault() is not { IsDrive: false } entry) return;
-        var name = await _services.Dialogs.PromptAsync("Umbenennen", $"Neuer Name für '{entry.Name}':", entry.Name);
+        var name = await _services.Dialogs.PromptAsync(Lang.T("Umbenennen", "Rename"), Lang.T($"Neuer Name für '{entry.Name}':", $"New name for '{entry.Name}':"), entry.Name);
         if (string.IsNullOrWhiteSpace(name) || name == entry.Name) return;
         await RunAsync(null, async ct =>
         {
@@ -248,7 +272,7 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
     {
         if (Browser is not RemoteBrowser remote || Selection.Count == 0) return;
         var current = Selection[0].Permissions;
-        var mode = await _services.Dialogs.PromptAsync("CHMOD", $"Rechte (oktal) für {Selection.Count} Einträge, aktuell {current}:", PermissionsToOctal(current));
+        var mode = await _services.Dialogs.PromptAsync("CHMOD", Lang.T($"Rechte (oktal) für {Selection.Count} Einträge, aktuell {current}:", $"Permissions (octal) for {Selection.Count} entries, currently {current}:"), PermissionsToOctal(current));
         if (string.IsNullOrWhiteSpace(mode)) return;
         var targets = Selection.ToList();
         await RunAsync(null, async ct =>
@@ -270,9 +294,9 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
     private async Task RawCommandAsync()
     {
         if (Browser is not RemoteBrowser remote) return;
-        var command = await _services.Dialogs.PromptAsync("Befehl senden", "FTP-Befehl (z. B. SITE WHO):");
+        var command = await _services.Dialogs.PromptAsync(Lang.T("Befehl senden", "Send command"), Lang.T("FTP-Befehl (z. B. SITE WHO):", "FTP command (e.g. SITE WHO):"));
         if (string.IsNullOrWhiteSpace(command)) return;
-        await RunCommandsAsync(remote, [command.Trim()], command.Trim());
+        await SendCommandsAsync([command.Trim()]);
     }
 
     [RelayCommand]
@@ -287,15 +311,27 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
         }
         var file = Selection.FirstOrDefault()?.Name;
         var lines = command.Expand(CurrentPath, file, remote.Title, parameter).ToList();
-        await RunCommandsAsync(remote, lines, command.Name);
+        await SendCommandsAsync(lines);
     }
 
-    private Task RunCommandsAsync(RemoteBrowser remote, IReadOnlyList<string> commands, string title) =>
-        RunAsync(null, async ct =>
+    /// <summary>
+    /// Sends raw commands over this pane's site. Commands and server replies are written to the
+    /// log by the connection itself, so the log is brought into view instead of a separate window.
+    /// Does not cancel a running listing (unlike <see cref="RunAsync"/>).
+    /// </summary>
+    public async Task SendCommandsAsync(IReadOnlyList<string> commands)
+    {
+        if (Browser is not RemoteBrowser remote || commands.Count == 0) return;
+        ShowLog?.Invoke();
+        try
         {
-            var output = await remote.ExecuteAsync(commands, ct);
-            _services.Dialogs.ShowText($"{title} – {remote.Title}", string.Join(Environment.NewLine, output));
-        });
+            await remote.ExecuteAsync(commands, CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is FtpException or IOException or InvalidOperationException)
+        {
+            _services.Log.AddError(Title, ex.Message);
+        }
+    }
 
     [RelayCommand]
     private Task TransferSelectedAsync() => TransferAsync(Selection.ToList(), startNow: true);
@@ -325,7 +361,7 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
         Directory.CreateDirectory(tempDir);
         var local = Path.Combine(tempDir, entry.Name);
         var site = remote.Site;
-        await RunAsync($"Lade {entry.Name}...", async ct =>
+        await RunAsync(Lang.T($"Lade {entry.Name}...", $"Downloading {entry.Name}..."), async ct =>
         {
             await using var conn = await _services.Connections.RentAsync(site, ct);
             await using var fs = File.Create(local);
@@ -352,9 +388,10 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
                 await Task.Delay(500);
                 try
                 {
-                    if (!await _services.Dialogs.ConfirmAsync("Datei geändert", $"'{Path.GetFileName(local)}' wurde geändert. Auf {site.DisplayName} hochladen?"))
+                    if (!await _services.Dialogs.ConfirmAsync(Lang.T("Datei geändert", "File changed"),
+                            Lang.T($"'{Path.GetFileName(local)}' wurde geändert. Auf {site.DisplayName} hochladen?", $"'{Path.GetFileName(local)}' was changed. Upload to {site.DisplayName}?")))
                         return;
-                    await RunAsync($"Lade {Path.GetFileName(local)} hoch...", async ct =>
+                    await RunAsync(Lang.T($"Lade {Path.GetFileName(local)} hoch...", $"Uploading {Path.GetFileName(local)}..."), async ct =>
                     {
                         await using var conn = await _services.Connections.RentAsync(site, ct);
                         await using var fs = new FileStream(local, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
@@ -378,7 +415,7 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
         try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
-            _services.Log.AddError("Lokal", $"Kann '{path}' nicht öffnen: {ex.Message}");
+            _services.Log.AddError(Lang.T("Lokal", "Local"), Lang.T($"Kann '{path}' nicht öffnen: {ex.Message}", $"Cannot open '{path}': {ex.Message}"));
         }
     }
 
@@ -390,14 +427,17 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
                   ?? _all.FirstOrDefault(e => e.Name.EndsWith(".sfv", StringComparison.OrdinalIgnoreCase));
         if (sfv is null)
         {
-            _ = _services.Dialogs.ShowMessageAsync("SFV prüfen", "Keine .sfv-Datei in diesem Ordner.");
+            _ = _services.Dialogs.ShowMessageAsync(Lang.T("SFV prüfen", "Verify SFV"), Lang.T("Keine .sfv-Datei in diesem Ordner.", "No .sfv file in this folder."));
             return;
         }
-        _ = RunAsync("Prüfe SFV...", async ct =>
+        _ = RunAsync(Lang.T("Prüfe SFV...", "Verifying SFV..."), async ct =>
         {
             var results = await Task.Run(() => SfvVerifier.Verify(Browser.Combine(CurrentPath, sfv.Name)), ct);
-            var lines = results.Select(r => $"{r.Status,-8} {r.FileName}" + (r.Actual is { } a && r.Status == SfvStatus.Bad ? $"  (erwartet {r.Expected:X8}, ist {a:X8})" : ""));
-            var summary = $"{results.Count(r => r.Status == SfvStatus.Ok)} OK, {results.Count(r => r.Status == SfvStatus.Bad)} fehlerhaft, {results.Count(r => r.Status == SfvStatus.Missing)} fehlen";
+            var lines = results.Select(r => $"{r.Status,-8} {r.FileName}" + (r.Actual is { } a && r.Status == SfvStatus.Bad ? Lang.T($"  (erwartet {r.Expected:X8}, ist {a:X8})", $"  (expected {r.Expected:X8}, got {a:X8})") : ""));
+            var ok = results.Count(r => r.Status == SfvStatus.Ok);
+            var bad = results.Count(r => r.Status == SfvStatus.Bad);
+            var missing = results.Count(r => r.Status == SfvStatus.Missing);
+            var summary = Lang.T($"{ok} OK, {bad} fehlerhaft, {missing} fehlen", $"{ok} OK, {bad} bad, {missing} missing");
             _services.Dialogs.ShowText($"SFV: {sfv.Name}", summary + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine, lines));
         });
     }
@@ -419,7 +459,7 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
         catch (Exception ex) when (ex is FtpException or IOException or UnauthorizedAccessException or InvalidOperationException
                                        or System.Security.SecurityException or ArgumentException)
         {
-            StatusText = "Fehler: " + ex.Message;
+            StatusText = Lang.T("Fehler: ", "Error: ") + ex.Message;
             _services.Log.AddError(Title, ex.Message);
         }
         finally

@@ -15,7 +15,7 @@ public static partial class FtpAddressParser
     public static IPEndPoint ParsePasv(FtpReply reply)
     {
         var match = PasvRegex().Match(string.Join(" ", reply.Lines));
-        if (!match.Success) throw new FtpException($"PASV-Antwort nicht lesbar: {reply.Message}");
+        if (!match.Success) throw new FtpException(Lang.T($"PASV-Antwort nicht lesbar: {reply.Message}", $"Cannot parse PASV reply: {reply.Message}"));
         var bytes = new byte[4];
         for (var i = 0; i < 4; i++) bytes[i] = byte.Parse(match.Groups[i + 1].Value);
         var port = int.Parse(match.Groups[5].Value) * 256 + int.Parse(match.Groups[6].Value);
@@ -33,7 +33,7 @@ public static partial class FtpAddressParser
     public static int ParseEpsv(FtpReply reply)
     {
         var match = EpsvRegex().Match(reply.Message);
-        if (!match.Success) throw new FtpException($"EPSV-Antwort nicht lesbar: {reply.Message}");
+        if (!match.Success) throw new FtpException(Lang.T($"EPSV-Antwort nicht lesbar: {reply.Message}", $"Cannot parse EPSV reply: {reply.Message}"));
         return int.Parse(match.Groups[2].Value);
     }
 
@@ -41,7 +41,7 @@ public static partial class FtpAddressParser
     {
         var ip = ep.Address.IsIPv4MappedToIPv6 ? ep.Address.MapToIPv4() : ep.Address;
         var b = ip.GetAddressBytes();
-        if (b.Length != 4) throw new FtpException("PORT unterstützt nur IPv4, EPRT verwenden");
+        if (b.Length != 4) throw new FtpException(Lang.T("PORT unterstützt nur IPv4, EPRT verwenden", "PORT supports IPv4 only, use EPRT"));
         return $"{b[0]},{b[1]},{b[2]},{b[3]},{ep.Port / 256},{ep.Port % 256}";
     }
 

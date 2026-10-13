@@ -74,6 +74,8 @@ public sealed class AppSettings
     public string IdentUser { get; set; } = "dackel";
 
     public string Theme { get; set; } = "Dark";
+    /// <summary>"de" or "en"; empty = German.</summary>
+    public string Language { get; set; } = "";
     public string LastLocalPath { get; set; } = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
     public double WindowWidth { get; set; } = 1400;
     public double WindowHeight { get; set; } = 900;

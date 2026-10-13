@@ -27,7 +27,9 @@ public sealed class LogStore
     }
 
     public ObservableCollection<LogLine> Lines { get; } = [];
-    public ObservableCollection<string> Sources { get; } = ["Alle"];
+    /// <summary>Source filter entries; <see cref="AllSources"/> is shown as "Alle"/"All".</summary>
+    public ObservableCollection<string> Sources { get; } = [AllSources];
+    public const string AllSources = "*";
 
     public void AddInfo(string source, string text) => Add(new LogLine(DateTimeOffset.Now, source, FtpLogKind.Info, text));
     public void AddError(string source, string text) => Add(new LogLine(DateTimeOffset.Now, source, FtpLogKind.Error, text));

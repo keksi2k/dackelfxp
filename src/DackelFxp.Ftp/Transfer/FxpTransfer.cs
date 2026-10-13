@@ -41,7 +41,7 @@ public static class FxpTransfer
         string destinationPath, FxpOptions options, CancellationToken ct = default)
     {
         if (ReferenceEquals(source, destination))
-            throw new ArgumentException("FXP braucht zwei verschiedene Verbindungen");
+            throw new ArgumentException(Lang.T("FXP braucht zwei verschiedene Verbindungen", "FXP needs two different connections"));
 
         // Always lock in the same order to avoid deadlocks with opposite-direction transfers.
         var (first, second) = source.Id < destination.Id ? (source, destination) : (destination, source);
@@ -63,7 +63,7 @@ public static class FxpTransfer
                     .ConfigureAwait(false);
                 if (setup is not null)
                 {
-                    errors.Add($"{(sourcePassive ? "Quelle" : "Ziel")} PASV/{strategy}: {setup}");
+                    errors.Add(Lang.T($"{(sourcePassive ? "Quelle" : "Ziel")} PASV/{strategy}: {setup}", $"{(sourcePassive ? "Source" : "Target")} PASV/{strategy}: {setup}"));
                     continue;
                 }
 
@@ -73,7 +73,7 @@ public static class FxpTransfer
                 return new FxpResult(DateTimeOffset.Now - start, strategy, sourcePassive);
             }
         }
-        throw new FtpException("FXP nicht möglich: " + string.Join("; ", errors));
+        throw new FtpException(Lang.T("FXP nicht möglich: ", "FXP not possible: ") + string.Join("; ", errors));
     }
 
     private static IEnumerable<bool> PassiveOrder(FxpOptions options) => options.PassiveSide switch
@@ -115,9 +115,9 @@ public static class FxpTransfer
             var passiveSscn = strategy == FxpStrategy.SscnOnPassive;
             var activeSscn = strategy == FxpStrategy.SscnOnActive;
             if (!await passive.TrySetSscnCoreAsync(passiveSscn, ct).ConfigureAwait(false) && passiveSscn)
-                return "SSCN wird nicht unterstützt";
+                return Lang.T("SSCN wird nicht unterstützt", "SSCN not supported");
             if (!await active.TrySetSscnCoreAsync(activeSscn, ct).ConfigureAwait(false) && activeSscn)
-                return "SSCN wird nicht unterstützt";
+                return Lang.T("SSCN wird nicht unterstützt", "SSCN not supported");
 
             var passiveCommand = TransferCommand(passive, source, sourcePath, destinationPath);
             var activeCommand = TransferCommand(active, source, sourcePath, destinationPath);

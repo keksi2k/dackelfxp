@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using DackelFxp.Core.Infrastructure;
+using DackelFxp.Ftp;
 
 namespace DackelFxp.Core.Queue;
 
@@ -53,13 +54,16 @@ public sealed class QueueItem : ObservableModel
     [JsonIgnore]
     public string StatusText => Status switch
     {
-        QueueStatus.Pending when Attempts > 0 => $"Warte (Versuch {Attempts + 1})",
-        QueueStatus.Pending => "Wartend",
-        QueueStatus.Running => Detail is null ? "Läuft" : "Läuft – " + Detail,
-        QueueStatus.Done => "Fertig",
-        QueueStatus.Failed => "Fehler: " + Error,
-        QueueStatus.Skipped => "Übersprungen" + (Error is null ? "" : ": " + Error),
-        QueueStatus.Paused => "Pausiert",
+        QueueStatus.Pending when Attempts > 0 => Lang.T($"Warte (Versuch {Attempts + 1})", $"Waiting (attempt {Attempts + 1})"),
+        QueueStatus.Pending => Lang.T("Wartend", "Pending"),
+        QueueStatus.Running => (Lang.T("Läuft", "Running")) + (Detail is null ? "" : " – " + Detail),
+        QueueStatus.Done => Lang.T("Fertig", "Done"),
+        QueueStatus.Failed => Lang.T("Fehler: ", "Error: ") + Error,
+        QueueStatus.Skipped => Lang.T("Übersprungen", "Skipped") + (Error is null ? "" : ": " + Error),
+        QueueStatus.Paused => Lang.T("Pausiert", "Paused"),
         _ => Status.ToString(),
     };
+
+    /// <summary>Re-evaluates <see cref="StatusText"/> after a language switch.</summary>
+    public void RefreshText() => Raise(nameof(StatusText));
 }

@@ -23,11 +23,11 @@
   </UserControl.Styles>
 
   <DockPanel>
-    <Border DockPanel.Dock="Top" Classes="pane-header" Classes.active="{Binding IsActive}">
+    <Border DockPanel.Dock="Top" Classes="pane-header line-bottom" Classes.active="{Binding IsActive}">
       <StackPanel Spacing="4">
         <DockPanel>
           <Menu DockPanel.Dock="Left">
-            <MenuItem Header="{Binding Title}" FontWeight="SemiBold" ItemsSource="{Binding Sites}" ToolTip.Tip="Mit Site verbinden">
+            <MenuItem Header="{Binding Title}" FontWeight="SemiBold" ItemsSource="{Binding Sites}" ToolTip.Tip="{DynamicResource Pane_ConnectTip}">
               <MenuItem.ItemContainerTheme>
                 <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="sites:Site">
                   <Setter Property="Header" Value="{Binding DisplayName}" />
@@ -36,7 +36,7 @@
                 </ControlTheme>
               </MenuItem.ItemContainerTheme>
             </MenuItem>
-            <MenuItem Header="★" ItemsSource="{Binding Bookmarks}" IsVisible="{Binding IsRemote}" ToolTip.Tip="Lesezeichen">
+            <MenuItem Header="★" ItemsSource="{Binding Bookmarks}" IsVisible="{Binding IsRemote}" ToolTip.Tip="{DynamicResource Pane_Bookmarks}">
               <MenuItem.ItemContainerTheme>
                 <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="sites:Bookmark">
                   <Setter Property="Header" Value="{Binding Name}" />
@@ -47,20 +47,20 @@
             </MenuItem>
           </Menu>
           <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2">
-            <Button Classes="tool" Content="Lokal" Command="{Binding ConnectLocalCommand}" ToolTip.Tip="Lokales Dateisystem" />
-            <Button Classes="tool" Content="Trennen" Command="{Binding DisconnectCommand}" IsVisible="{Binding IsRemote}" />
-            <Button Classes="tool" Content="+★" Command="{Binding AddBookmarkCommand}" IsVisible="{Binding IsRemote}" ToolTip.Tip="Lesezeichen hinzufügen" />
+            <Button Classes="tool" Content="{DynamicResource Pane_Local}" Command="{Binding ConnectLocalCommand}" ToolTip.Tip="{DynamicResource Pane_LocalTip}" />
+            <Button Classes="tool" Content="{DynamicResource Pane_Disconnect}" Command="{Binding DisconnectCommand}" IsVisible="{Binding IsRemote}" />
+            <Button Classes="tool" Content="+★" Command="{Binding AddBookmarkCommand}" IsVisible="{Binding IsRemote}" ToolTip.Tip="{DynamicResource Pane_AddBookmark}" />
           </StackPanel>
           <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Height="4" MinWidth="40" Margin="8,0" VerticalAlignment="Center" />
         </DockPanel>
         <DockPanel>
           <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="2" Margin="0,0,4,0">
-            <Button Classes="tool" Content="←" Command="{Binding BackCommand}" ToolTip.Tip="Zurück" />
-            <Button Classes="tool" Content="↑" Command="{Binding UpCommand}" ToolTip.Tip="Übergeordneter Ordner (Backspace)" />
-            <Button Classes="tool" Content="⟳" Command="{Binding RefreshCommand}" ToolTip.Tip="Aktualisieren (F5)" />
-            <Button Classes="tool" Content="⌂" Command="{Binding HomeCommand}" ToolTip.Tip="Startverzeichnis" />
+            <Button Classes="tool" Content="←" Command="{Binding BackCommand}" ToolTip.Tip="{DynamicResource Pane_Back}" />
+            <Button Classes="tool" Content="↑" Command="{Binding UpCommand}" ToolTip.Tip="{DynamicResource Pane_Up}" />
+            <Button Classes="tool" Content="⟳" Command="{Binding RefreshCommand}" ToolTip.Tip="{DynamicResource Pane_Refresh}" />
+            <Button Classes="tool" Content="⌂" Command="{Binding HomeCommand}" ToolTip.Tip="{DynamicResource Pane_Home}" />
           </StackPanel>
-          <TextBox DockPanel.Dock="Right" Width="110" PlaceholderText="Filter" Text="{Binding Filter}" Margin="4,0,0,0" />
+          <TextBox DockPanel.Dock="Right" Width="110" PlaceholderText="{DynamicResource Pane_Filter}" Text="{Binding Filter}" Margin="4,0,0,0" />
           <TextBox Text="{Binding PathText}" x:Name="PathBox">
             <TextBox.KeyBindings>
               <KeyBinding Gesture="Enter" Command="{Binding NavigateToPathTextCommand}" />
@@ -70,24 +70,24 @@
       </StackPanel>
     </Border>
 
-    <Border DockPanel.Dock="Bottom" Padding="6,2">
+    <Border DockPanel.Dock="Bottom" Classes="line-top" Padding="6,2">
       <TextBlock Text="{Binding StatusText}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
     </Border>
 
     <DataGrid x:Name="Grid" ItemsSource="{Binding Items}" SelectionMode="Extended" DragDrop.AllowDrop="True">
       <DataGrid.ContextMenu>
         <ContextMenu>
-          <MenuItem Header="Übertragen" InputGesture="Ctrl+T" Command="{Binding TransferSelectedCommand}" />
-          <MenuItem Header="In Queue" InputGesture="Ctrl+Q" Command="{Binding QueueSelectedCommand}" />
+          <MenuItem Header="{DynamicResource Ctx_Transfer}" InputGesture="Ctrl+T" Command="{Binding TransferSelectedCommand}" />
+          <MenuItem Header="{DynamicResource Ctx_Queue}" InputGesture="Ctrl+Q" Command="{Binding QueueSelectedCommand}" />
           <Separator />
-          <MenuItem Header="Anzeigen / Bearbeiten" InputGesture="F3" Command="{Binding ViewEditCommand}" />
-          <MenuItem Header="Umbenennen" InputGesture="F2" Command="{Binding RenameCommand}" />
-          <MenuItem Header="Löschen" InputGesture="Delete" Command="{Binding DeleteCommand}" />
-          <MenuItem Header="Neuer Ordner" InputGesture="F7" Command="{Binding MakeDirectoryCommand}" />
-          <MenuItem Header="Rechte ändern (CHMOD)" Command="{Binding ChmodCommand}" IsVisible="{Binding IsRemote}" />
+          <MenuItem Header="{DynamicResource Ctx_ViewEdit}" InputGesture="F3" Command="{Binding ViewEditCommand}" />
+          <MenuItem Header="{DynamicResource Ctx_Rename}" InputGesture="F2" Command="{Binding RenameCommand}" />
+          <MenuItem Header="{DynamicResource Ctx_Delete}" InputGesture="Delete" Command="{Binding DeleteCommand}" />
+          <MenuItem Header="{DynamicResource Ctx_NewFolder}" InputGesture="F7" Command="{Binding MakeDirectoryCommand}" />
+          <MenuItem Header="{DynamicResource Ctx_Chmod}" Command="{Binding ChmodCommand}" IsVisible="{Binding IsRemote}" />
           <Separator />
-          <MenuItem Header="Befehl senden..." Command="{Binding RawCommandCommand}" IsVisible="{Binding IsRemote}" />
-          <MenuItem Header="Benutzerbefehle" ItemsSource="{Binding CustomCommands}" IsVisible="{Binding IsRemote}">
+          <MenuItem Header="{DynamicResource Ctx_SendCommand}" Command="{Binding RawCommandCommand}" IsVisible="{Binding IsRemote}" />
+          <MenuItem Header="{DynamicResource Ctx_CustomCommands}" ItemsSource="{Binding CustomCommands}" IsVisible="{Binding IsRemote}">
             <MenuItem.ItemContainerTheme>
               <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="settings:CustomCommand">
                 <Setter Property="Header" Value="{Binding Name}" />
@@ -96,13 +96,16 @@
               </ControlTheme>
             </MenuItem.ItemContainerTheme>
           </MenuItem>
-          <MenuItem Header="SFV prüfen" Command="{Binding VerifySfvCommand}" />
+          <MenuItem Header="{DynamicResource Ctx_VerifySfv}" Command="{Binding VerifySfvCommand}" />
           <Separator />
-          <MenuItem Header="Aktualisieren" InputGesture="F5" Command="{Binding RefreshCommand}" />
+          <MenuItem Header="{DynamicResource Ctx_Refresh}" InputGesture="F5" Command="{Binding RefreshCommand}" />
         </ContextMenu>
       </DataGrid.ContextMenu>
       <DataGrid.Columns>
-        <DataGridTemplateColumn Header="Name" Width="*" SortMemberPath="SortName" MinWidth="120">
+        <DataGridTemplateColumn Width="*" SortMemberPath="SortName" MinWidth="120">
+          <DataGridTemplateColumn.Header>
+            <TextBlock Text="{DynamicResource Col_Name}" />
+          </DataGridTemplateColumn.Header>
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate x:DataType="vm:FileEntryViewModel">
               <StackPanel Orientation="Horizontal" Spacing="6" Margin="6,0">
@@ -113,28 +116,40 @@
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTemplateColumn Header="Größe" Width="90" SortMemberPath="Size">
+        <DataGridTemplateColumn Width="90" SortMemberPath="Size">
+          <DataGridTemplateColumn.Header>
+            <TextBlock Text="{DynamicResource Col_Size}" />
+          </DataGridTemplateColumn.Header>
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate x:DataType="vm:FileEntryViewModel">
               <TextBlock Text="{Binding SizeText}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="6,0" />
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTemplateColumn Header="Datum" Width="145" SortMemberPath="Modified">
+        <DataGridTemplateColumn Width="145" SortMemberPath="Modified">
+          <DataGridTemplateColumn.Header>
+            <TextBlock Text="{DynamicResource Col_Date}" />
+          </DataGridTemplateColumn.Header>
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate x:DataType="vm:FileEntryViewModel">
               <TextBlock Text="{Binding ModifiedText}" VerticalAlignment="Center" Margin="6,0" />
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTemplateColumn Header="Rechte" Width="85" SortMemberPath="Permissions">
+        <DataGridTemplateColumn Width="100" SortMemberPath="Permissions">
+          <DataGridTemplateColumn.Header>
+            <TextBlock Text="{DynamicResource Col_Permissions}" />
+          </DataGridTemplateColumn.Header>
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate x:DataType="vm:FileEntryViewModel">
               <TextBlock Text="{Binding Permissions}" VerticalAlignment="Center" Margin="6,0" Classes="log" />
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTemplateColumn Header="Besitzer" Width="100" SortMemberPath="Owner">
+        <DataGridTemplateColumn Width="100" SortMemberPath="Owner">
+          <DataGridTemplateColumn.Header>
+            <TextBlock Text="{DynamicResource Col_Owner}" />
+          </DataGridTemplateColumn.Header>
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate x:DataType="vm:FileEntryViewModel">
               <TextBlock Text="{Binding Owner}" VerticalAlignment="Center" Margin="6,0" />

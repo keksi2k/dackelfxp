@@ -4,6 +4,7 @@ using DackelFxp.Core.Queue;
 using DackelFxp.Core.Settings;
 using DackelFxp.Core.Sites;
 using DackelFxp.Core.Tools;
+using DackelFxp.Ftp;
 
 namespace DackelFxp.App.Services;
 
@@ -16,6 +17,9 @@ public sealed class AppServices
         Paths = new AppPaths(Program.Option("config") ?? Environment.GetEnvironmentVariable("DACKELFXP_CONFIG"));
         Settings = new SettingsStore(Paths);
         Settings.Load();
+        if (Settings.Current.Language.Length == 0)
+            Settings.Current.Language = "de";
+        Lang.Code = Settings.Current.Language;
         Sites = new SiteStore(Paths);
         Sites.Load();
         Dialogs = new DialogService();
@@ -57,9 +61,9 @@ public sealed class AppServices
             catch (System.Net.Sockets.SocketException ex)
             {
                 var hint = OperatingSystem.IsLinux() && s.IdentPort < 1024
-                    ? " (Ports unter 1024 brauchen unter Linux Root oder 'setcap cap_net_bind_service')"
+                    ? Lang.T(" (Ports unter 1024 brauchen unter Linux Root oder 'setcap cap_net_bind_service')", " (ports below 1024 need root or 'setcap cap_net_bind_service' on Linux)")
                     : "";
-                Log.AddInfo("Ident", $"Ident-Server konnte nicht starten: {ex.Message}{hint}");
+                Log.AddInfo("Ident", Lang.T($"Ident-Server konnte nicht starten: {ex.Message}{hint}", $"Ident server could not start: {ex.Message}{hint}"));
             }
         }
         if (Ident is not null) Ident.User = s.IdentUser;

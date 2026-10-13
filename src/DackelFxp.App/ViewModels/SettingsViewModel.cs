@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using DackelFxp.App.Services;
 using DackelFxp.Core.Rules;
 using DackelFxp.Core.Settings;
+using DackelFxp.Ftp;
 
 namespace DackelFxp.App.ViewModels;
 
@@ -54,7 +55,7 @@ public sealed partial class ScheduleEntryViewModel(ScheduleEntry entry) : Observ
     public bool Sun { get => Day(DayOfWeek.Sunday); set => SetDay(DayOfWeek.Sunday, value); }
 
     public string Summary => $"{(Name.Length > 0 ? Name : Action.ToString())} – {TimeText}" +
-                             (Entry.Days.Count == 0 ? " (einmalig)" : " " + string.Join(",", Entry.Days.Order().Select(d => d.ToString()[..2])));
+                             (Entry.Days.Count == 0 ? Lang.T(" (einmalig)", " (once)") : " " + string.Join(",", Entry.Days.Order().Select(d => d.ToString()[..2])));
 }
 
 public sealed partial class SettingsViewModel : ObservableObject
@@ -79,6 +80,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     public static RuleAction[] RuleActions { get; } = Enum.GetValues<RuleAction>();
     public static ScheduleAction[] ScheduleActions { get; } = Enum.GetValues<ScheduleAction>();
     public static string[] Themes { get; } = ["Dark", "Light", "System"];
+    public static string[] Languages { get; } = ["de", "en"];
 
     public ObservableCollection<SkipList> SkipLists { get; }
 
@@ -110,7 +112,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task AddSkipListAsync()
     {
-        var name = await _services.Dialogs.PromptAsync("Skipliste", "Name der neuen Skipliste:");
+        var name = await _services.Dialogs.PromptAsync(Lang.T("Skipliste", "Skiplist"), Lang.T("Name der neuen Skipliste:", "Name of the new skiplist:"));
         if (string.IsNullOrWhiteSpace(name)) return;
         var list = new SkipList { Name = name.Trim() };
         SkipLists.Add(list);
@@ -144,7 +146,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private void AddCommand()
     {
-        var command = new CustomCommand { Name = "Neuer Befehl", Commands = "SITE " };
+        var command = new CustomCommand { Name = Lang.T("Neuer Befehl", "New command"), Commands = "SITE " };
         Commands.Add(command);
         SelectedCommand = command;
     }
@@ -158,7 +160,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private void AddSchedule()
     {
-        var entry = new ScheduleEntryViewModel(new ScheduleEntry { Name = "Queue starten", Days = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday] });
+        var entry = new ScheduleEntryViewModel(new ScheduleEntry { Name = Lang.T("Queue starten", "Start queue"), Days = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday] });
         Schedules.Add(entry);
         SelectedSchedule = entry;
     }
@@ -173,7 +175,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private async Task PickScheduleQueueAsync()
     {
         if (SelectedSchedule is null) return;
-        var file = await _services.Dialogs.PickOpenFileAsync("Queue-Datei", "*.json");
+        var file = await _services.Dialogs.PickOpenFileAsync(Lang.T("Queue-Datei", "Queue file"), "*.json");
         if (file is not null)
         {
             SelectedSchedule.QueueFile = file;

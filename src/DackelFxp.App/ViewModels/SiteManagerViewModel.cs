@@ -109,7 +109,7 @@ public sealed partial class SiteManagerViewModel : ObservableObject
     private async Task NewGroupAsync()
     {
         var parent = SelectedNode?.GroupPath ?? "";
-        var name = await _services.Dialogs.PromptAsync("Neue Gruppe", parent.Length > 0 ? $"Name der Untergruppe von '{parent}':" : "Name der Gruppe:");
+        var name = await _services.Dialogs.PromptAsync(Lang.T("Neue Gruppe", "New group"), parent.Length > 0 ? Lang.T($"Name der Untergruppe von '{parent}':", $"Name of the subgroup of '{parent}':") : Lang.T("Name der Gruppe:", "Group name:"));
         if (string.IsNullOrWhiteSpace(name)) return;
         _services.Sites.AddGroup(parent.Length > 0 ? $"{parent}/{name.Trim()}" : name.Trim());
         Rebuild(EditSite?.Id);
@@ -121,12 +121,12 @@ public sealed partial class SiteManagerViewModel : ObservableObject
         if (SelectedNode is not { } node) return;
         if (node.Site is { } site)
         {
-            if (!await _services.Dialogs.ConfirmAsync("Site löschen", $"'{site.DisplayName}' löschen?")) return;
+            if (!await _services.Dialogs.ConfirmAsync(Lang.T("Site löschen", "Delete site"), Lang.T($"'{site.DisplayName}' löschen?", $"Delete '{site.DisplayName}'?"))) return;
             _services.Sites.Remove(site.Id);
         }
         else
         {
-            if (!await _services.Dialogs.ConfirmAsync("Gruppe löschen", $"Gruppe '{node.GroupPath}' löschen? Enthaltene Sites wandern in die oberste Ebene.")) return;
+            if (!await _services.Dialogs.ConfirmAsync(Lang.T("Gruppe löschen", "Delete group"), Lang.T($"Gruppe '{node.GroupPath}' löschen? Enthaltene Sites wandern in die oberste Ebene.", $"Delete group '{node.GroupPath}'? Its sites move to the top level."))) return;
             _services.Sites.RemoveGroup(node.GroupPath);
         }
         Rebuild(null);
@@ -138,7 +138,7 @@ public sealed partial class SiteManagerViewModel : ObservableObject
         if (EditSite is null) return;
         var copy = EditSite.Clone();
         copy.Id = Guid.NewGuid();
-        copy.Name += " (Kopie)";
+        copy.Name += Lang.T(" (Kopie)", " (copy)");
         copy.TrustedCertificate = null;
         _services.Sites.AddOrUpdate(copy);
         Rebuild(copy.Id);

@@ -5,7 +5,7 @@
         xmlns:settings="using:DackelFxp.Core.Settings"
         x:Class="DackelFxp.App.Views.Dialogs.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
-        Title="Einstellungen" Width="900" Height="620" MinWidth="720" MinHeight="480"
+        Title="{DynamicResource Title_Settings}" Width="900" Height="620" MinWidth="720" MinHeight="480"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
   <Window.Styles>
     <Style Selector="Grid.form > TextBlock">
@@ -23,48 +23,50 @@
 
   <DockPanel Margin="10">
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" Margin="0,10,0,0">
-      <Button Content="Speichern" Command="{Binding SaveCommand}" IsDefault="True" />
-      <Button Content="Abbrechen" Command="{Binding CancelCommand}" IsCancel="True" />
+      <Button Content="{DynamicResource Btn_Save}" Command="{Binding SaveCommand}" IsDefault="True" />
+      <Button Content="{DynamicResource Btn_Cancel}" Command="{Binding CancelCommand}" IsCancel="True" />
     </StackPanel>
 
     <TabControl TabStripPlacement="Left">
-      <TabItem Header="Allgemein">
+      <TabItem Header="{DynamicResource Tab_General}">
         <ScrollViewer>
           <Grid Classes="form" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="8">
-            <TextBlock Grid.Row="0" Text="Parallele Transfers" />
+            <TextBlock Grid.Row="0" Text="{DynamicResource Set_Slots}" />
             <NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding Settings.TransferSlots}" Minimum="1" Maximum="20" FormatString="0" />
-            <TextBlock Grid.Row="1" Text="Globales Speedlimit (KB/s)" />
+            <TextBlock Grid.Row="1" Text="{DynamicResource Set_GlobalLimit}" />
             <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding Settings.GlobalSpeedLimitKb}" Minimum="0" Maximum="10000000" FormatString="0" />
-            <TextBlock Grid.Row="2" Text="Leerlauf-Trennung (Min.)" />
+            <TextBlock Grid.Row="2" Text="{DynamicResource Set_IdleDisconnect}" />
             <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding Settings.IdleDisconnectMinutes}" Minimum="0" Maximum="1440" FormatString="0" />
-            <TextBlock Grid.Row="3" Text="Nach der Queue" />
-            <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.CompletionActions}" SelectedItem="{Binding Settings.OnQueueComplete}" />
-            <TextBlock Grid.Row="4" Text="Design" />
-            <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.Themes}" SelectedItem="{Binding Settings.Theme}" />
+            <TextBlock Grid.Row="3" Text="{DynamicResource Set_AfterQueue}" />
+            <ComboBox Classes="enum" Grid.Row="3" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.CompletionActions}" SelectedItem="{Binding Settings.OnQueueComplete}" />
+            <TextBlock Grid.Row="6" Text="{DynamicResource Set_Language}" />
+            <ComboBox Grid.Row="6" Grid.Column="1" Classes="enum" ItemsSource="{x:Static vm:SettingsViewModel.Languages}" SelectedItem="{Binding Settings.Language}" />
+            <TextBlock Grid.Row="4" Text="{DynamicResource Set_Theme}" />
+            <ComboBox Classes="enum" Grid.Row="4" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.Themes}" SelectedItem="{Binding Settings.Theme}" />
             <TextBlock Grid.Row="5" Text="" />
             <StackPanel Grid.Row="5" Grid.Column="1" Spacing="2">
-              <CheckBox Content="Dateien vor Ordnern übertragen" IsChecked="{Binding Settings.TransferFilesBeforeFolders}" />
-              <CheckBox Content="Zeitstempel übernehmen (MFMT / lokal)" IsChecked="{Binding Settings.PreserveTimestamps}" />
-              <CheckBox Content="Downloads gegen .sfv prüfen (CRC32)" IsChecked="{Binding Settings.VerifySfvAfterDownload}" />
+              <CheckBox Content="{DynamicResource Set_FilesFirst}" IsChecked="{Binding Settings.TransferFilesBeforeFolders}" />
+              <CheckBox Content="{DynamicResource Set_PreserveTime}" IsChecked="{Binding Settings.PreserveTimestamps}" />
+              <CheckBox Content="{DynamicResource Set_VerifySfv}" IsChecked="{Binding Settings.VerifySfvAfterDownload}" />
             </StackPanel>
           </Grid>
         </ScrollViewer>
       </TabItem>
 
-      <TabItem Header="Datei existiert">
+      <TabItem Header="{DynamicResource Tab_FileExists}">
         <Grid Classes="form" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="8">
-          <TextBlock Grid.Row="0" Text="Ziel ist kleiner" />
-          <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.ExistsActions}" SelectedItem="{Binding Settings.FileExists.WhenSmaller}" />
-          <TextBlock Grid.Row="1" Text="Ziel ist gleich groß" />
-          <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.ExistsActions}" SelectedItem="{Binding Settings.FileExists.WhenEqual}" />
-          <TextBlock Grid.Row="2" Text="Ziel ist größer" />
-          <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.ExistsActions}" SelectedItem="{Binding Settings.FileExists.WhenLarger}" />
+          <TextBlock Grid.Row="0" Text="{DynamicResource Exists_Smaller}" />
+          <ComboBox Classes="enum" Grid.Row="0" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.ExistsActions}" SelectedItem="{Binding Settings.FileExists.WhenSmaller}" />
+          <TextBlock Grid.Row="1" Text="{DynamicResource Exists_Equal}" />
+          <ComboBox Classes="enum" Grid.Row="1" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.ExistsActions}" SelectedItem="{Binding Settings.FileExists.WhenEqual}" />
+          <TextBlock Grid.Row="2" Text="{DynamicResource Exists_Larger}" />
+          <ComboBox Classes="enum" Grid.Row="2" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.ExistsActions}" SelectedItem="{Binding Settings.FileExists.WhenLarger}" />
           <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Classes="muted" TextWrapping="Wrap" Margin="0,10,0,0"
-                     Text="Resume = Fortsetzen ab der vorhandenen Größe (REST). Ask = jedes Mal nachfragen." />
+                     Text="{DynamicResource Exists_Help}" />
         </Grid>
       </TabItem>
 
-      <TabItem Header="Skiplisten">
+      <TabItem Header="{DynamicResource Tab_Skiplists}">
         <DockPanel Margin="8">
           <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="0,0,0,6">
             <ComboBox ItemsSource="{Binding SkipLists}" SelectedItem="{Binding SelectedSkipList}" MinWidth="200">
@@ -74,26 +76,28 @@
                 </DataTemplate>
               </ComboBox.ItemTemplate>
             </ComboBox>
-            <Button Content="Neue Liste" Command="{Binding AddSkipListCommand}" />
-            <Button Content="Liste löschen" Command="{Binding RemoveSkipListCommand}" />
-            <TextBlock Text="Standard:" VerticalAlignment="Center" Margin="12,0,0,0" />
+            <Button Content="{DynamicResource Skip_NewList}" Command="{Binding AddSkipListCommand}" />
+            <Button Content="{DynamicResource Skip_DeleteList}" Command="{Binding RemoveSkipListCommand}" />
+            <TextBlock Text="{DynamicResource Skip_Default}" VerticalAlignment="Center" Margin="12,0,0,0" />
             <TextBox Text="{Binding Settings.DefaultSkipList}" Width="140" />
           </StackPanel>
           <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="6" Margin="0,6,0,0">
-            <Button Content="Regel hinzufügen" Command="{Binding AddRuleCommand}" />
-            <Button Content="Regel entfernen" Command="{Binding RemoveRuleCommand}" />
-            <TextBlock Classes="muted" VerticalAlignment="Center" Text="Muster: * und ? oder Regex. Priorität: höher = früher, negativ = später." />
+            <Button Content="{DynamicResource Skip_AddRule}" Command="{Binding AddRuleCommand}" />
+            <Button Content="{DynamicResource Skip_RemoveRule}" Command="{Binding RemoveRuleCommand}" />
+            <TextBlock Classes="muted" VerticalAlignment="Center" Text="{DynamicResource Skip_Help}" />
           </StackPanel>
           <DataGrid ItemsSource="{Binding Rules}" SelectedItem="{Binding SelectedRule}" IsReadOnly="False" CanUserSortColumns="False" RowHeight="32">
             <DataGrid.Columns>
-              <DataGridTemplateColumn Header="Aktiv" Width="62">
+              <DataGridTemplateColumn Width="62">
+          <DataGridTemplateColumn.Header><TextBlock Text="{DynamicResource Lbl_Active}" /></DataGridTemplateColumn.Header>
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate x:DataType="rules:SkipRule">
                     <CheckBox IsChecked="{Binding Enabled}" HorizontalAlignment="Center" />
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTemplateColumn Header="Muster" Width="*">
+              <DataGridTemplateColumn Width="*">
+          <DataGridTemplateColumn.Header><TextBlock Text="{DynamicResource Col_Pattern}" /></DataGridTemplateColumn.Header>
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate x:DataType="rules:SkipRule">
                     <TextBox Text="{Binding Pattern}" BorderThickness="0" />
@@ -107,21 +111,24 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTemplateColumn Header="Für" Width="130">
+              <DataGridTemplateColumn Width="130">
+          <DataGridTemplateColumn.Header><TextBlock Text="{DynamicResource Col_For}" /></DataGridTemplateColumn.Header>
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate x:DataType="rules:SkipRule">
-                    <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.RuleTargets}" SelectedItem="{Binding Target}" HorizontalAlignment="Stretch" />
+                    <ComboBox Classes="enum" ItemsSource="{x:Static vm:SettingsViewModel.RuleTargets}" SelectedItem="{Binding Target}" HorizontalAlignment="Stretch" />
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTemplateColumn Header="Aktion" Width="120">
+              <DataGridTemplateColumn Width="120">
+          <DataGridTemplateColumn.Header><TextBlock Text="{DynamicResource Lbl_Action}" /></DataGridTemplateColumn.Header>
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate x:DataType="rules:SkipRule">
-                    <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.RuleActions}" SelectedItem="{Binding Action}" HorizontalAlignment="Stretch" />
+                    <ComboBox Classes="enum" ItemsSource="{x:Static vm:SettingsViewModel.RuleActions}" SelectedItem="{Binding Action}" HorizontalAlignment="Stretch" />
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTemplateColumn Header="Priorität" Width="140">
+              <DataGridTemplateColumn Width="140">
+          <DataGridTemplateColumn.Header><TextBlock Text="{DynamicResource Col_Priority}" /></DataGridTemplateColumn.Header>
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate x:DataType="rules:SkipRule">
                     <NumericUpDown Value="{Binding Priority}" Minimum="-1000" Maximum="1000" FormatString="0" Width="130" />
@@ -133,12 +140,12 @@
         </DockPanel>
       </TabItem>
 
-      <TabItem Header="Befehle">
+      <TabItem Header="{DynamicResource Tab_Commands}">
         <Grid ColumnDefinitions="220,8,*" Margin="8">
           <DockPanel>
             <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="6" Margin="0,6,0,0">
-              <Button Content="Neu" Command="{Binding AddCommandCommand}" />
-              <Button Content="Entfernen" Command="{Binding RemoveCommandCommand}" />
+              <Button Content="{DynamicResource Btn_New}" Command="{Binding AddCommandCommand}" />
+              <Button Content="{DynamicResource Btn_Remove}" Command="{Binding RemoveCommandCommand}" />
             </StackPanel>
             <ListBox ItemsSource="{Binding Commands}" SelectedItem="{Binding SelectedCommand}">
               <ListBox.ItemTemplate>
@@ -151,21 +158,21 @@
           <StackPanel Grid.Column="2" Spacing="6" IsVisible="{Binding SelectedCommand, Converter={x:Static ObjectConverters.IsNotNull}}">
             <TextBlock Text="Name" />
             <TextBox Text="{Binding SelectedCommand.Name}" />
-            <TextBlock Text="Befehle (einer pro Zeile)" />
+            <TextBlock Text="{DynamicResource Cmd_Lines}" />
             <TextBox Text="{Binding SelectedCommand.Commands}" AcceptsReturn="True" Height="160" Classes="log" />
-            <CheckBox Content="Beim Ausführen nach Parameter %1 fragen" IsChecked="{Binding SelectedCommand.AskForParameter}" />
+            <CheckBox Content="{DynamicResource Cmd_AskParameter}" IsChecked="{Binding SelectedCommand.AskForParameter}" />
             <TextBlock Classes="muted" TextWrapping="Wrap"
-                       Text="Platzhalter: %p = Pfad der Auswahl, %f = Dateiname, %d = aktuelles Verzeichnis, %s = Site-Name, %1 = abgefragter Parameter." />
+                       Text="{DynamicResource Cmd_Help}" />
           </StackPanel>
         </Grid>
       </TabItem>
 
-      <TabItem Header="Planer">
+      <TabItem Header="{DynamicResource Tab_Scheduler}">
         <Grid ColumnDefinitions="260,8,*" Margin="8">
           <DockPanel>
             <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="6" Margin="0,6,0,0">
-              <Button Content="Neu" Command="{Binding AddScheduleCommand}" />
-              <Button Content="Entfernen" Command="{Binding RemoveScheduleCommand}" />
+              <Button Content="{DynamicResource Btn_New}" Command="{Binding AddScheduleCommand}" />
+              <Button Content="{DynamicResource Btn_Remove}" Command="{Binding RemoveScheduleCommand}" />
             </StackPanel>
             <ListBox ItemsSource="{Binding Schedules}" SelectedItem="{Binding SelectedSchedule}">
               <ListBox.ItemTemplate>
@@ -179,28 +186,28 @@
                 IsVisible="{Binding SelectedSchedule, Converter={x:Static ObjectConverters.IsNotNull}}">
             <TextBlock Grid.Row="0" Text="Name" />
             <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding SelectedSchedule.Name}" />
-            <TextBlock Grid.Row="1" Text="Aktiv" />
+            <TextBlock Grid.Row="1" Text="{DynamicResource Lbl_Active}" />
             <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding SelectedSchedule.Enabled}" />
-            <TextBlock Grid.Row="2" Text="Aktion" />
-            <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.ScheduleActions}" SelectedItem="{Binding SelectedSchedule.Action}" />
-            <TextBlock Grid.Row="3" Text="Uhrzeit (HH:mm)" />
+            <TextBlock Grid.Row="2" Text="{DynamicResource Lbl_Action}" />
+            <ComboBox Classes="enum" Grid.Row="2" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.ScheduleActions}" SelectedItem="{Binding SelectedSchedule.Action}" />
+            <TextBlock Grid.Row="3" Text="{DynamicResource Sched_Time}" />
             <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding SelectedSchedule.TimeText}" Width="100" HorizontalAlignment="Left" />
-            <TextBlock Grid.Row="4" Text="Wochentage" />
+            <TextBlock Grid.Row="4" Text="{DynamicResource Sched_Days}" />
             <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Spacing="4">
-              <CheckBox Content="Mo" IsChecked="{Binding SelectedSchedule.Mon}" />
-              <CheckBox Content="Di" IsChecked="{Binding SelectedSchedule.Tue}" />
-              <CheckBox Content="Mi" IsChecked="{Binding SelectedSchedule.Wed}" />
-              <CheckBox Content="Do" IsChecked="{Binding SelectedSchedule.Thu}" />
-              <CheckBox Content="Fr" IsChecked="{Binding SelectedSchedule.Fri}" />
-              <CheckBox Content="Sa" IsChecked="{Binding SelectedSchedule.Sat}" />
-              <CheckBox Content="So" IsChecked="{Binding SelectedSchedule.Sun}" />
+              <CheckBox Content="{DynamicResource Day_Mo}" IsChecked="{Binding SelectedSchedule.Mon}" />
+              <CheckBox Content="{DynamicResource Day_Tu}" IsChecked="{Binding SelectedSchedule.Tue}" />
+              <CheckBox Content="{DynamicResource Day_We}" IsChecked="{Binding SelectedSchedule.Wed}" />
+              <CheckBox Content="{DynamicResource Day_Th}" IsChecked="{Binding SelectedSchedule.Thu}" />
+              <CheckBox Content="{DynamicResource Day_Fr}" IsChecked="{Binding SelectedSchedule.Fri}" />
+              <CheckBox Content="{DynamicResource Day_Sa}" IsChecked="{Binding SelectedSchedule.Sat}" />
+              <CheckBox Content="{DynamicResource Day_Su}" IsChecked="{Binding SelectedSchedule.Sun}" />
             </StackPanel>
-            <TextBlock Grid.Row="5" Text="Datum (einmalig)" />
-            <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding SelectedSchedule.DateText}" PlaceholderText="yyyy-MM-dd, leer = heute/nächstes Mal" Width="220" HorizontalAlignment="Left" />
-            <TextBlock Grid.Row="6" Text="Queue-Datei" />
+            <TextBlock Grid.Row="5" Text="{DynamicResource Sched_Date}" />
+            <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding SelectedSchedule.DateText}" PlaceholderText="{DynamicResource Sched_DatePlaceholder}" Width="220" HorizontalAlignment="Left" />
+            <TextBlock Grid.Row="6" Text="{DynamicResource Sched_QueueFile}" />
             <DockPanel Grid.Row="6" Grid.Column="1">
               <Button DockPanel.Dock="Right" Content="..." Command="{Binding PickScheduleQueueCommand}" Margin="6,0,0,0" />
-              <TextBox Text="{Binding SelectedSchedule.QueueFile}" PlaceholderText="optional, wird vor dem Start geladen" />
+              <TextBox Text="{Binding SelectedSchedule.QueueFile}" PlaceholderText="{DynamicResource Sched_QueuePlaceholder}" />
             </DockPanel>
           </Grid>
         </Grid>
@@ -208,14 +215,14 @@
 
       <TabItem Header="Ident">
         <Grid Classes="form" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="8">
-          <TextBlock Grid.Row="0" Text="Ident-Server" />
-          <CheckBox Grid.Row="0" Grid.Column="1" Content="Aktiviert" IsChecked="{Binding Settings.IdentEnabled}" />
+          <TextBlock Grid.Row="0" Text="{DynamicResource Ident_Server}" />
+          <CheckBox Grid.Row="0" Grid.Column="1" Content="{DynamicResource Ident_Enabled}" IsChecked="{Binding Settings.IdentEnabled}" />
           <TextBlock Grid.Row="1" Text="Port" />
           <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding Settings.IdentPort}" Minimum="1" Maximum="65535" FormatString="0" />
-          <TextBlock Grid.Row="2" Text="Benutzer" />
+          <TextBlock Grid.Row="2" Text="{DynamicResource Lbl_User}" />
           <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Settings.IdentUser}" />
           <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Classes="muted" TextWrapping="Wrap" Margin="0,10,0,0"
-                     Text="Unter Linux braucht Port 113 Root-Rechte. Alternativen: 'sudo setcap cap_net_bind_service=+ep' auf die Programmdatei oder eine Portweiterleitung von 113 auf einen hohen Port." />
+                     Text="{DynamicResource Ident_Help}" />
         </Grid>
       </TabItem>
     </TabControl>
