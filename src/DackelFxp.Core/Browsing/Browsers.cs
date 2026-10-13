@@ -188,8 +188,8 @@ public sealed class RemoteBrowser(ConnectionManager connections, Site site) : IB
         var output = new List<string>();
         foreach (var command in commands)
         {
-            var reply = await conn.Client.ExecuteAsync(command, ct).ConfigureAwait(false);
-            output.AddRange(reply.Lines);
+            foreach (var reply in await conn.Client.ExecuteRawAsync(command, ct).ConfigureAwait(false))
+                output.AddRange(reply.Lines);
         }
         return output;
     }

@@ -155,6 +155,42 @@ public class ClientTests
         Assert.True(sw.Elapsed > TimeSpan.FromMilliseconds(800), $"zu schnell: {sw.Elapsed}");
     }
 
+    [Fact]
+    public async Task Raw_Command_Collects_All_Replies_And_Connection_Stays_In_Sync()
+    {
+        await using var server = new FakeFtpServer();
+        server.Directories["/dir"] = true;
+        server.Files["/dir/a.txt"] = [1];
+        await using var client = CreateClient(server);
+        await client.ConnectAsync(Ct);
+
+        var replies = await client.ExecuteRawAsync("SITE MULTI", Ct);
+        Assert.Equal(["First reply", "Second reply", "Third reply"], replies.Select(r => r.Message));
+
+        await client.ChangeDirectoryAsync("/dir", Ct);
+        Assert.Equal("/dir", client.WorkingDirectory);
+        Assert.Single(await client.ListAsync("/dir", Ct));
+    }
+
+    [Fact]
+    public async Task Late_Replies_Are_Drained_Before_The_Next_Command()
+    {
+        await using var server = new FakeFtpServer();
+        server.Directories["/dir"] = true;
+        server.Files["/dir/a.txt"] = [1];
+        await using var client = CreateClient(server);
+        await client.ConnectAsync(Ct);
+
+        // Plain execute only reads the first reply; the others arrive afterwards.
+        await client.ExecuteAsync("SITE MULTI", Ct);
+        await Task.Delay(300, Ct);
+
+        await client.ChangeDirectoryAsync("/dir", Ct);
+        Assert.Equal("/dir", client.WorkingDirectory);
+        var items = await client.ListAsync("/dir", Ct);
+        Assert.Equal("a.txt", Assert.Single(items).Name);
+    }
+
     /// <summary>Progress&lt;T&gt; posts asynchronously; tests need synchronous reports.</summary>
     internal sealed class SyncProgress(Action<long> report) : IProgress<long>
     {

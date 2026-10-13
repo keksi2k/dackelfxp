@@ -293,6 +293,13 @@ public sealed class FakeFtpServer : IAsyncDisposable
                 case "QUIT":
                     await ReplyAsync("221 Bye", ct);
                     return false;
+                case "SITE" when arg.StartsWith("MULTI", StringComparison.OrdinalIgnoreCase):
+                    // Like some site scripts: several complete replies for one command, the last one late.
+                    await ReplyAsync("200-Line one\r\n200 First reply", ct);
+                    await ReplyAsync("200 Second reply", ct);
+                    await Task.Delay(150, ct);
+                    await ReplyAsync("200 Third reply", ct);
+                    break;
                 case "ABOR":
                     await ReplyAsync("226 ABOR ok", ct);
                     break;

@@ -199,6 +199,13 @@ public sealed class FtpClient : IAsyncDisposable
 
     public Task<FtpReply> NoopAsync(CancellationToken ct = default) => ExecuteAsync("NOOP", ct);
 
+    /// <summary>
+    /// Raw/custom command as typed by the user: also collects replies that arrive shortly after the
+    /// final one (multi-reply SITE commands), so nothing stays behind in the connection.
+    /// </summary>
+    public Task<IReadOnlyList<FtpReply>> ExecuteRawAsync(string command, CancellationToken ct = default) =>
+        RunAsync(() => _control.ExecuteCollectAsync(command, TimeSpan.FromMilliseconds(400), ct), ct);
+
     /// <summary>Sends NOOP only if the connection is idle; returns false if busy.</summary>
     public async Task<bool> TryKeepAliveAsync(CancellationToken ct = default)
     {

@@ -16,6 +16,8 @@ public sealed class FtpControlConnection : IAsyncDisposable
     private readonly byte[] _buffer = new byte[16 * 1024];
     private int _bufferStart;
     private int _bufferEnd;
+    private readonly MemoryStream _partial = new();
+    private Task<int>? _pendingRead;
     private Socket? _socket;
     private Stream? _stream;
 
@@ -70,7 +72,7 @@ public sealed class FtpControlConnection : IAsyncDisposable
         SslProtocols protocols = SslProtocols.None)
     {
         if (_stream is null) throw new FtpConnectionException(Lang.T("Nicht verbunden", "Not connected"));
-        if (_bufferEnd != _bufferStart) throw new FtpException(Lang.T("Unerwartete Daten vor dem TLS-Handshake", "Unexpected data before the TLS handshake"));
+        if (_bufferEnd != _bufferStart || _partial.Length > 0 || _pendingRead is not null) throw new FtpException(Lang.T("Unerwartete Daten vor dem TLS-Handshake", "Unexpected data before the TLS handshake"));
 
         var ssl = new SslStream(_stream, leaveInnerStreamOpen: false);
         try
@@ -106,7 +108,7 @@ public sealed class FtpControlConnection : IAsyncDisposable
         {
             await SendCoreAsync(command, ct).ConfigureAwait(false);
             FtpReply reply;
-            do reply = await ReadReplyCoreAsync(ct).ConfigureAwait(false);
+            do reply = await ReadReplyCoreAsync(ReadTimeout, ct).ConfigureAwait(false);
             while (reply.IsPreliminary);
             return reply;
         }
@@ -116,7 +118,37 @@ public sealed class FtpControlConnection : IAsyncDisposable
         }
     }
 
-    /// <summary>Sends a command without reading the reply. Use <see cref="ReadReplyAsync"/> afterwards.</summary>
+    /// <summary>
+    /// For raw/custom commands: sends the command, reads the final reply and then collects further
+    /// replies that arrive within <paramref name="quietPeriod"/> (some servers and site scripts answer
+    /// with several separate replies). All lines are logged as they arrive.
+    /// </summary>
+    public async Task<IReadOnlyList<FtpReply>> ExecuteCollectAsync(string command, TimeSpan quietPeriod, CancellationToken ct)
+    {
+        await _lock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await SendCoreAsync(command, ct).ConfigureAwait(false);
+            var replies = new List<FtpReply>();
+            FtpReply reply;
+            do
+            {
+                reply = await ReadReplyCoreAsync(ReadTimeout, ct).ConfigureAwait(false);
+                replies.Add(reply);
+            }
+            while (reply.IsPreliminary);
+
+            while (await TryReadReplyCoreAsync(quietPeriod, ct).ConfigureAwait(false) is { } extra)
+                replies.Add(extra);
+            return replies;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Sends a command without reading the reply. Use <see cref="ReadReplyAsync(CancellationToken)"/> afterwards.</summary>
     public async Task SendAsync(string command, CancellationToken ct)
     {
         await _lock.WaitAsync(ct).ConfigureAwait(false);
@@ -125,25 +157,20 @@ public sealed class FtpControlConnection : IAsyncDisposable
     }
 
     /// <summary>Reads exactly one reply (which may be preliminary).</summary>
-    public async Task<FtpReply> ReadReplyAsync(CancellationToken ct)
-    {
-        await _lock.WaitAsync(ct).ConfigureAwait(false);
-        try { return await ReadReplyCoreAsync(ct).ConfigureAwait(false); }
-        finally { _lock.Release(); }
-    }
+    public Task<FtpReply> ReadReplyAsync(CancellationToken ct) => ReadReplyAsync(ReadTimeout, ct);
 
     /// <summary>Reads exactly one reply with a custom timeout (e.g. the end of a long transfer).</summary>
     public async Task<FtpReply> ReadReplyAsync(TimeSpan timeout, CancellationToken ct)
     {
-        var old = ReadTimeout;
-        ReadTimeout = timeout;
-        try { return await ReadReplyAsync(ct).ConfigureAwait(false); }
-        finally { ReadTimeout = old; }
+        await _lock.WaitAsync(ct).ConfigureAwait(false);
+        try { return await ReadReplyCoreAsync(timeout, ct).ConfigureAwait(false); }
+        finally { _lock.Release(); }
     }
 
     private async Task SendCoreAsync(string command, CancellationToken ct)
     {
         var stream = _stream ?? throw new FtpConnectionException(Lang.T("Nicht verbunden", "Not connected"));
+        await DrainStaleRepliesAsync(ct).ConfigureAwait(false);
         WriteLog(FtpLogKind.Command, MaskCommand(command));
         var bytes = Encoding.GetBytes(command + "\r\n");
         try
@@ -157,20 +184,59 @@ public sealed class FtpControlConnection : IAsyncDisposable
         }
     }
 
-    private async Task<FtpReply> ReadReplyCoreAsync(CancellationToken ct)
+    /// <summary>Data from the server that nobody has asked for yet.</summary>
+    private bool HasPendingInput =>
+        _bufferEnd > _bufferStart || _partial.Length > 0
+        || _pendingRead is { IsCompleted: true }
+        || (_socket is { } s && SafeAvailable(s) > 0);
+
+    private static int SafeAvailable(Socket socket)
     {
-        var lines = new List<string>();
-        var first = await ReadLineAsync(ct).ConfigureAwait(false);
-        lines.Add(first);
+        try { return socket.Available; }
+        catch (Exception ex) when (ex is SocketException or ObjectDisposedException) { return 0; }
+    }
+
+    /// <summary>
+    /// Reads replies that arrived after the previous command was considered complete. Without this,
+    /// every following command would receive the reply of its predecessor (e.g. PASV getting "257 ...").
+    /// </summary>
+    private async Task DrainStaleRepliesAsync(CancellationToken ct)
+    {
+        while (HasPendingInput)
+        {
+            var stale = await TryReadReplyCoreAsync(TimeSpan.FromMilliseconds(50), ct).ConfigureAwait(false);
+            if (stale is null) break;
+        }
+    }
+
+    /// <summary>Reads a reply if its first line arrives within <paramref name="wait"/>, otherwise null.</summary>
+    private async Task<FtpReply?> TryReadReplyCoreAsync(TimeSpan wait, CancellationToken ct)
+    {
+        var first = await ReadLineCoreAsync(wait, throwOnTimeout: false, ct).ConfigureAwait(false);
+        return first is null ? null : await CompleteReplyAsync(first, ct).ConfigureAwait(false);
+    }
+
+    private async Task<FtpReply> ReadReplyCoreAsync(TimeSpan timeout, CancellationToken ct)
+    {
+        var first = (await ReadLineCoreAsync(timeout, throwOnTimeout: true, ct).ConfigureAwait(false))!;
+        return await CompleteReplyAsync(first, ct).ConfigureAwait(false);
+    }
+
+    private async Task<FtpReply> CompleteReplyAsync(string first, CancellationToken ct)
+    {
+        var lines = new List<string> { first };
         if (first.Length < 3 || !int.TryParse(first.AsSpan(0, 3), out var code))
+        {
+            WriteLog(FtpLogKind.Error, first);
             throw new FtpConnectionException(Lang.T($"Ungültige Antwort vom Server: '{first}'", $"Invalid reply from server: '{first}'"));
+        }
 
         if (first.Length > 3 && first[3] == '-')
         {
             var terminator = first[..3] + " ";
             while (true)
             {
-                var line = await ReadLineAsync(ct).ConfigureAwait(false);
+                var line = (await ReadLineCoreAsync(ReadTimeout, throwOnTimeout: true, ct).ConfigureAwait(false))!;
                 lines.Add(line);
                 if (line.StartsWith(terminator, StringComparison.Ordinal) || line == first[..3]) break;
             }
@@ -185,40 +251,50 @@ public sealed class FtpControlConnection : IAsyncDisposable
         return reply;
     }
 
-    private async Task<string> ReadLineAsync(CancellationToken ct)
+    /// <summary>
+    /// Reads one line. A socket read that outlives the timeout is never cancelled (that could lose data or
+    /// break the TLS stream); it stays pending in <see cref="_pendingRead"/> and is picked up next time.
+    /// Partial lines are kept in <see cref="_partial"/>. Returns null on timeout if <paramref name="throwOnTimeout"/> is false.
+    /// </summary>
+    private async Task<string?> ReadLineCoreAsync(TimeSpan timeout, bool throwOnTimeout, CancellationToken ct)
     {
         var stream = _stream ?? throw new FtpConnectionException(Lang.T("Nicht verbunden", "Not connected"));
-        using var line = new MemoryStream();
+        var deadline = DateTime.UtcNow + timeout;
         while (true)
         {
             var span = _buffer.AsSpan(_bufferStart, _bufferEnd - _bufferStart);
             var nl = span.IndexOf((byte)'\n');
             if (nl >= 0)
             {
-                line.Write(span[..nl]);
+                _partial.Write(span[..nl]);
                 _bufferStart += nl + 1;
-                var bytes = line.GetBuffer().AsSpan(0, (int)line.Length);
+                var bytes = _partial.GetBuffer().AsSpan(0, (int)_partial.Length);
                 if (bytes.Length > 0 && bytes[^1] == '\r') bytes = bytes[..^1];
-                return Encoding.GetString(bytes);
+                var text = Encoding.GetString(bytes);
+                _partial.SetLength(0);
+                return text;
             }
-            line.Write(span);
+            _partial.Write(span);
             _bufferStart = _bufferEnd = 0;
 
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            cts.CancelAfter(ReadTimeout);
+            _pendingRead ??= stream.ReadAsync(_buffer).AsTask();
+            var remaining = deadline - DateTime.UtcNow;
             int read;
             try
             {
-                read = await stream.ReadAsync(_buffer, cts.Token).ConfigureAwait(false);
+                read = await _pendingRead.WaitAsync(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero, ct).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            catch (TimeoutException)
             {
+                if (!throwOnTimeout) return null;
                 throw new FtpConnectionException(Lang.T("Zeitüberschreitung beim Warten auf die Serverantwort", "Timeout waiting for the server reply"));
             }
             catch (Exception ex) when (ex is IOException or SocketException or ObjectDisposedException)
             {
+                _pendingRead = null;
                 throw new FtpConnectionException(Lang.T($"Verbindung verloren: {ex.Message}", $"Connection lost: {ex.Message}"), ex);
             }
+            _pendingRead = null;
             if (read == 0) throw new FtpConnectionException(Lang.T("Verbindung vom Server geschlossen", "Connection closed by server"));
             _bufferEnd = read;
         }
@@ -245,5 +321,7 @@ public sealed class FtpControlConnection : IAsyncDisposable
         _socket?.Dispose();
         _socket = null;
         _bufferStart = _bufferEnd = 0;
+        _partial.SetLength(0);
+        _pendingRead = null;
     }
 }
