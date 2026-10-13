@@ -1,7 +1,9 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using DackelFxp.Ftp.Listing;
@@ -24,6 +26,10 @@ public sealed class FtpClient : IAsyncDisposable
     private bool? _protected;
     private bool _sscn;
     private static long _nextId;
+    /// <summary>Hosts that need TLS 1.2 (no TLS 1.3 session reuse on data connections). Remembered per process.</summary>
+    private static readonly ConcurrentDictionary<string, bool> Tls12Hosts = new(StringComparer.OrdinalIgnoreCase);
+    private SslProtocols _negotiatedTls;
+    private long _copiedBytes;
 
     internal long Id { get; } = Interlocked.Increment(ref _nextId);
 
@@ -51,6 +57,11 @@ public sealed class FtpClient : IAsyncDisposable
     internal FtpControlConnection Control => _control;
     internal bool DataProtected => _protected == true;
     internal bool UsesTls => Options.TlsMode != FtpTlsMode.None;
+    private string HostKey => $"{Options.Host}:{Options.Port}";
+    private SslProtocols EffectiveTlsProtocols =>
+        Options.TlsProtocols == SslProtocols.None && Tls12Hosts.ContainsKey(HostKey) ? SslProtocols.Tls12 : Options.TlsProtocols;
+    /// <summary>TLS version negotiated on the control connection.</summary>
+    public SslProtocols NegotiatedTls => _negotiatedTls;
 
     public bool HasFeature(string feature) => _features.Contains(feature);
 
@@ -77,7 +88,7 @@ public sealed class FtpClient : IAsyncDisposable
 
         await _control.ConnectAsync(Options.Host, Options.Port, Options.ConnectTimeout, ct).ConfigureAwait(false);
         if (Options.TlsMode == FtpTlsMode.Implicit)
-            await _control.UpgradeToTlsAsync(Options.Host, ValidateCertificate, ct).ConfigureAwait(false);
+            await _control.UpgradeToTlsAsync(Options.Host, ValidateCertificate, ct, EffectiveTlsProtocols).ConfigureAwait(false);
 
         var welcome = await _control.ReadReplyAsync(ct).ConfigureAwait(false);
         while (welcome.IsPreliminary) welcome = await _control.ReadReplyAsync(ct).ConfigureAwait(false);
@@ -89,9 +100,10 @@ public sealed class FtpClient : IAsyncDisposable
             var auth = await _control.ExecuteAsync("AUTH TLS", ct).ConfigureAwait(false);
             if (!auth.IsSuccess) auth = await _control.ExecuteAsync("AUTH SSL", ct).ConfigureAwait(false);
             if (!auth.IsSuccess) throw new FtpCommandException("AUTH TLS", auth);
-            await _control.UpgradeToTlsAsync(Options.Host, ValidateCertificate, ct).ConfigureAwait(false);
+            await _control.UpgradeToTlsAsync(Options.Host, ValidateCertificate, ct, EffectiveTlsProtocols).ConfigureAwait(false);
         }
 
+        _negotiatedTls = _control.TlsProtocol;
         await LoginCoreAsync(ct).ConfigureAwait(false);
         await ReadFeaturesCoreAsync(ct).ConfigureAwait(false);
 
@@ -337,8 +349,10 @@ public sealed class FtpClient : IAsyncDisposable
 
     private async Task<FtpDataChannel> OpenDataChannelCoreAsync(string transferCommand, CancellationToken ct)
     {
-        // Client transfers need us as TLS client, so a leftover SSCN ON from FXP must go.
+        // Client transfers need us as TLS client, so a leftover SSCN ON from FXP must go,
+        // and a PROT C from a clear FXP fallback must not leak into client transfers.
         if (_sscn) await TrySetSscnCoreAsync(false, ct).ConfigureAwait(false);
+        await SetProtectionCoreAsync(Options.ProtectData, ct).ConfigureAwait(false);
         if (ShouldSendPret) await EnsureAsync("PRET " + transferCommand, ct).ConfigureAwait(false);
 
         switch (Options.DataMode)
@@ -404,7 +418,7 @@ public sealed class FtpClient : IAsyncDisposable
         if (!reply.IsPreliminary) throw new FtpCommandException(command, reply);
         await channel.AcceptAsync(Options.DataTimeout, ct).ConfigureAwait(false);
         if (UsesTls && _protected == true)
-            await channel.SecureAsync(Options.Host, ValidateCertificate, ct).ConfigureAwait(false);
+            await channel.SecureAsync(Options.Host, ValidateCertificate, EffectiveTlsProtocols, ct).ConfigureAwait(false);
     }
 
     private async Task FinishDataTransferCoreAsync(string command, CancellationToken ct)
@@ -462,11 +476,11 @@ public sealed class FtpClient : IAsyncDisposable
         };
         try
         {
-            return await ReadListingCoreAsync(command, ct).ConfigureAwait(false);
+            return await WithTlsFallbackAsync(() => ReadListingCoreAsync(command, ct), ct).ConfigureAwait(false);
         }
         catch (FtpCommandException ex) when (ex.Reply.IsPermanentError && command != "LIST")
         {
-            return await ReadListingCoreAsync("LIST", ct).ConfigureAwait(false);
+            return await WithTlsFallbackAsync(() => ReadListingCoreAsync("LIST", ct), ct).ConfigureAwait(false);
         }
     }
 
@@ -499,7 +513,7 @@ public sealed class FtpClient : IAsyncDisposable
     /// <summary>Downloads <paramref name="remotePath"/> into <paramref name="target"/>, starting at <paramref name="offset"/> (REST).</summary>
     public Task DownloadAsync(string remotePath, Stream target, long offset = 0, IProgress<long>? progress = null,
         BandwidthLimiter? limiter = null, CancellationToken ct = default) =>
-        RunAsync(async () =>
+        RunAsync(() => WithTlsFallbackAsync(async () =>
         {
             await SetBinaryCoreAsync(true, ct).ConfigureAwait(false);
             var command = "RETR " + remotePath;
@@ -517,12 +531,13 @@ public sealed class FtpClient : IAsyncDisposable
                 await AbortAfterCancelAsync().ConfigureAwait(false);
                 throw;
             }
-        }, ct);
+            return true;
+        }, ct), ct);
 
     /// <summary>Uploads <paramref name="source"/> to <paramref name="remotePath"/>. With offset &gt; 0 the upload is resumed.</summary>
     public Task UploadAsync(Stream source, string remotePath, long offset = 0, IProgress<long>? progress = null,
         BandwidthLimiter? limiter = null, CancellationToken ct = default) =>
-        RunAsync(async () =>
+        RunAsync(() => WithTlsFallbackAsync(async () =>
         {
             await SetBinaryCoreAsync(true, ct).ConfigureAwait(false);
             var command = "STOR " + remotePath;
@@ -544,7 +559,8 @@ public sealed class FtpClient : IAsyncDisposable
                 await AbortAfterCancelAsync().ConfigureAwait(false);
                 throw;
             }
-        }, ct);
+            return true;
+        }, ct), ct);
 
     internal async Task RestCoreAsync(long offset, CancellationToken ct)
     {
@@ -578,10 +594,40 @@ public sealed class FtpClient : IAsyncDisposable
                 throw new FtpException($"Datenverbindung abgebrochen: {ex.Message}", ex);
             }
             total += read;
+            _copiedBytes += read;
             LastActivity = DateTimeOffset.Now;
             progress?.Report(total);
         }
         await to.FlushAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// With TLS 1.3, .NET on Linux cannot resume the control session on more than one data connection,
+    /// which servers with mandatory session reuse (vsftpd require_ssl_reuse) reject. If a protected data
+    /// transfer fails before any byte moved, reconnect with TLS 1.2 (reusable sessions) and retry once.
+    /// </summary>
+    private async Task<T> WithTlsFallbackAsync<T>(Func<Task<T>> operation, CancellationToken ct)
+    {
+        _copiedBytes = 0;
+        try
+        {
+            return await operation().ConfigureAwait(false);
+        }
+        catch (FtpException) when (UsesTls && _protected == true && _negotiatedTls == SslProtocols.Tls13
+                                   && Options.TlsProtocols == SslProtocols.None && _copiedBytes == 0
+                                   && Tls12Hosts.TryAdd(HostKey, true))
+        {
+            _control.WriteLog(FtpLogKind.Tls, "Datenverbindung mit TLS 1.3 abgelehnt (Session-Reuse) – verbinde neu mit TLS 1.2");
+            var directory = WorkingDirectory;
+            await _control.DisposeAsync().ConfigureAwait(false);
+            await ConnectCoreAsync(ct).ConfigureAwait(false);
+            if (directory != WorkingDirectory)
+            {
+                try { await ChangeDirectoryCoreAsync(directory, ct).ConfigureAwait(false); }
+                catch (FtpCommandException) { }
+            }
+            return await operation().ConfigureAwait(false);
+        }
     }
 
     // ---------------------------------------------------------------- locking

@@ -86,7 +86,7 @@
           </StackPanel>
           <DataGrid ItemsSource="{Binding Rules}" SelectedItem="{Binding SelectedRule}" IsReadOnly="False" CanUserSortColumns="False" RowHeight="32">
             <DataGrid.Columns>
-              <DataGridTemplateColumn Header="Aktiv" Width="55">
+              <DataGridTemplateColumn Header="Aktiv" Width="62">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate x:DataType="rules:SkipRule">
                     <CheckBox IsChecked="{Binding Enabled}" HorizontalAlignment="Center" />
@@ -100,7 +100,7 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTemplateColumn Header="Regex" Width="60">
+              <DataGridTemplateColumn Header="Regex" Width="66">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate x:DataType="rules:SkipRule">
                     <CheckBox IsChecked="{Binding IsRegex}" HorizontalAlignment="Center" />
@@ -121,10 +121,10 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTemplateColumn Header="Priorität" Width="110">
+              <DataGridTemplateColumn Header="Priorität" Width="140">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate x:DataType="rules:SkipRule">
-                    <NumericUpDown Value="{Binding Priority}" Minimum="-1000" Maximum="1000" FormatString="0" Width="100" />
+                    <NumericUpDown Value="{Binding Priority}" Minimum="-1000" Maximum="1000" FormatString="0" Width="130" />
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>

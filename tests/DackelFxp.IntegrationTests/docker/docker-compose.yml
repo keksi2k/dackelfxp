@@ -1,0 +1,27 @@
+# Integration tests on Ubuntu against two real vsftpd servers.
+#   docker compose -f tests/DackelFxp.IntegrationTests/docker/docker-compose.yml up --build --abort-on-container-exit --exit-code-from tests
+services:
+  ftp-a:
+    build: ./vsftpd
+    init: true
+  ftp-b:
+    build: ./vsftpd
+    init: true
+  tests:
+    image: mcr.microsoft.com/dotnet/sdk:10.0-noble
+    depends_on: [ftp-a, ftp-b]
+    working_dir: /src
+    volumes:
+      - ../../..:/repo:ro
+    environment:
+      DACKELFXP_IT_A: ftp-a
+      DACKELFXP_IT_B: ftp-b
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    # Copy the sources (without Windows build output) and run all test projects on Linux.
+    command: >
+      bash -c "tar -C /repo --exclude=bin --exclude=obj --exclude=.git -cf - . | tar -xf - &&
+               dotnet test --project tests/DackelFxp.Ftp.Tests &&
+               dotnet test --project tests/DackelFxp.Core.Tests &&
+               dotnet test --project tests/DackelFxp.IntegrationTests &&
+               dotnet build src/DackelFxp.App -c Release"

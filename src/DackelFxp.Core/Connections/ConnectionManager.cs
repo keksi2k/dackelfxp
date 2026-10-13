@@ -100,6 +100,12 @@ public sealed class ConnectionManager : IAsyncDisposable
         Password = site.Password,
         TlsMode = site.TlsMode,
         ProtectData = site.ProtectData,
+        TlsProtocols = site.TlsVersion switch
+        {
+            TlsVersion.Tls12 => System.Security.Authentication.SslProtocols.Tls12,
+            TlsVersion.Tls13 => System.Security.Authentication.SslProtocols.Tls13,
+            _ => System.Security.Authentication.SslProtocols.None,
+        },
         ClearControlChannel = site.ClearControlChannel,
         CertificateValidator = (cert, chain, errors) => ValidateCertificate(site, cert, errors),
         DataMode = site.DataMode,

@@ -9,7 +9,7 @@
     <ComboBox ItemsSource="{Binding History}" SelectedItem="{Binding SelectedHistory}" PlaceholderText="Verlauf" HorizontalAlignment="Stretch" />
     <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="10">
       <TextBlock Grid.Row="0" Text="Host" VerticalAlignment="Center" />
-      <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,110" ColumnSpacing="6">
+      <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,140" ColumnSpacing="6">
         <TextBox x:Name="HostBox" Text="{Binding Host}" PlaceholderText="ftp.example.org" />
         <NumericUpDown Grid.Column="1" Value="{Binding Port}" Minimum="1" Maximum="65535" FormatString="0" />
       </Grid>

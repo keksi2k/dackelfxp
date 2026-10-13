@@ -86,6 +86,11 @@ public class FxpTests
         var result = await FxpTransfer.TransferAsync(cs, "/f", cd, "/f", new FxpOptions { AllowClearFallback = true }, Ct);
         Assert.Equal(FxpStrategy.Clear, result.Strategy);
         Assert.Equal([1, 2, 3], dst.Files["/f"]);
+
+        // A following client transfer must be encrypted again.
+        var local = new MemoryStream();
+        await cd.DownloadAsync("/f", local, ct: Ct);
+        Assert.Equal("PROT P", dst.ReceivedCommands.Last(c => c.StartsWith("PROT", StringComparison.Ordinal)));
     }
 
     [Fact]

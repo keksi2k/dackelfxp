@@ -82,12 +82,12 @@ internal sealed class FtpDataChannel : IAsyncDisposable
         _stream = new NetworkStream(_socket, ownsSocket: true);
     }
 
-    public async Task SecureAsync(string targetHost, RemoteCertificateValidationCallback validation, CancellationToken ct)
+    public async Task SecureAsync(string targetHost, RemoteCertificateValidationCallback validation, SslProtocols protocols, CancellationToken ct)
     {
         var ssl = new SslStream(Stream, leaveInnerStreamOpen: false);
         try
         {
-            await ssl.AuthenticateAsClientAsync(FtpTls.CreateClientOptions(targetHost, validation), ct).ConfigureAwait(false);
+            await ssl.AuthenticateAsClientAsync(FtpTls.CreateClientOptions(targetHost, validation, protocols), ct).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is AuthenticationException or IOException)
         {
@@ -98,14 +98,28 @@ internal sealed class FtpDataChannel : IAsyncDisposable
         _stream = ssl;
     }
 
-    /// <summary>Closes the channel; sends a TLS close_notify first so servers accept uploads as complete.</summary>
+    /// <summary>
+    /// Closes the channel gracefully: TLS close_notify, FIN, then wait for the server to close.
+    /// Closing with unread data (e.g. TLS 1.3 session tickets the server sent during an upload)
+    /// would make the OS send a RST, and the server would discard the upload as aborted.
+    /// </summary>
     public async Task CloseAsync()
     {
         if (_stream is SslStream ssl)
         {
             try { await ssl.ShutdownAsync().ConfigureAwait(false); } catch (IOException) { } catch (ObjectDisposedException) { }
         }
-        try { _socket?.Shutdown(SocketShutdown.Send); } catch (SocketException) { } catch (ObjectDisposedException) { }
+        if (_socket is { } socket)
+        {
+            try
+            {
+                socket.Shutdown(SocketShutdown.Send);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                var buffer = new byte[4096];
+                while (await socket.ReceiveAsync(buffer, SocketFlags.None, cts.Token).ConfigureAwait(false) > 0) { }
+            }
+            catch (Exception ex) when (ex is SocketException or ObjectDisposedException or OperationCanceledException) { }
+        }
         await DisposeAsync().ConfigureAwait(false);
     }
 

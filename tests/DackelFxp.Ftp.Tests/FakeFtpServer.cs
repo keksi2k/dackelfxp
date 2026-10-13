@@ -371,6 +371,7 @@ public sealed class FakeFtpServer : IAsyncDisposable
                         break;
                 }
                 if (data is SslStream s) { try { await s.ShutdownAsync(); } catch (IOException) { } }
+                await DrainAsync(dataSocket);
             }
             catch (Exception ex) when (ex is IOException or System.Security.Authentication.AuthenticationException)
             {
@@ -382,6 +383,19 @@ public sealed class FakeFtpServer : IAsyncDisposable
             await data.DisposeAsync();
             await ReplyAsync("226 Transfer complete", ct);
             ResetData();
+        }
+
+        /// <summary>FIN, then read until the peer closes, so unread TLS records do not turn the close into a RST.</summary>
+        private static async Task DrainAsync(Socket socket)
+        {
+            try
+            {
+                socket.Shutdown(SocketShutdown.Send);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                var buffer = new byte[4096];
+                while (await socket.ReceiveAsync(buffer, SocketFlags.None, cts.Token) > 0) { }
+            }
+            catch (Exception ex) when (ex is SocketException or ObjectDisposedException or OperationCanceledException) { }
         }
 
         private void ResetData()

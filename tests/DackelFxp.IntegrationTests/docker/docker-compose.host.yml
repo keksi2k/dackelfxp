@@ -1,0 +1,11 @@
+# One vsftpd reachable from the host (Windows): FTP on 127.0.0.1:2221, passive ports 30000-30019.
+#   docker compose -f tests/DackelFxp.IntegrationTests/docker/docker-compose.host.yml up -d --build
+#   DACKELFXP_IT_A=127.0.0.1:2221 DACKELFXP_IT_NO_ACTIVE=1 dotnet test --project tests/DackelFxp.IntegrationTests
+services:
+  ftp-host:
+    build: ./vsftpd
+    init: true
+    command: ["/usr/sbin/vsftpd", "-opasv_address=127.0.0.1", "/etc/vsftpd.conf"]
+    ports:
+      - "2221:21"
+      - "30000-30019:30000-30019"

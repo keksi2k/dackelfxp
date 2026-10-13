@@ -4,6 +4,8 @@ using DackelFxp.Ftp.Transfer;
 
 namespace DackelFxp.Core.Sites;
 
+public enum TlsVersion { Auto, Tls12, Tls13 }
+
 public sealed class Bookmark
 {
     public string Name { get; set; } = "";
@@ -28,6 +30,7 @@ public sealed class Site
 
     public FtpTlsMode TlsMode { get; set; } = FtpTlsMode.Explicit;
     public bool ProtectData { get; set; } = true;
+    public TlsVersion TlsVersion { get; set; } = TlsVersion.Auto;
     public bool ClearControlChannel { get; set; }
     /// <summary>SHA-256 fingerprint of a certificate the user accepted permanently.</summary>
     public string? TrustedCertificate { get; set; }

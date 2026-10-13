@@ -66,7 +66,8 @@ public sealed class FtpControlConnection : IAsyncDisposable
     }
 
     /// <summary>Wraps the current stream in TLS (AUTH TLS or implicit FTPS).</summary>
-    public async Task UpgradeToTlsAsync(string targetHost, RemoteCertificateValidationCallback validation, CancellationToken ct)
+    public async Task UpgradeToTlsAsync(string targetHost, RemoteCertificateValidationCallback validation, CancellationToken ct,
+        SslProtocols protocols = SslProtocols.None)
     {
         if (_stream is null) throw new FtpConnectionException("Nicht verbunden");
         if (_bufferEnd != _bufferStart) throw new FtpException("Unerwartete Daten vor dem TLS-Handshake");
@@ -74,7 +75,7 @@ public sealed class FtpControlConnection : IAsyncDisposable
         var ssl = new SslStream(_stream, leaveInnerStreamOpen: false);
         try
         {
-            await ssl.AuthenticateAsClientAsync(FtpTls.CreateClientOptions(targetHost, validation), ct).ConfigureAwait(false);
+            await ssl.AuthenticateAsClientAsync(FtpTls.CreateClientOptions(targetHost, validation, protocols), ct).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is AuthenticationException or IOException)
         {
@@ -230,6 +231,12 @@ public sealed class FtpControlConnection : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (_stream is SslStream ssl && _socket is { Connected: true })
+        {
+            // Best effort close_notify: some servers log or mishandle a TLS session that just vanishes.
+            try { await ssl.ShutdownAsync().WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false); }
+            catch (Exception ex) when (ex is IOException or TimeoutException or ObjectDisposedException or InvalidOperationException) { }
+        }
         if (_stream is not null)
         {
             try { await _stream.DisposeAsync().ConfigureAwait(false); } catch { /* closing anyway */ }

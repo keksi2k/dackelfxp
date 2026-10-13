@@ -62,7 +62,7 @@
               <TextBlock Grid.Row="1" Text="Gruppe" />
               <AutoCompleteBox Grid.Row="1" Grid.Column="1" Text="{Binding EditSite.Group}" ItemsSource="{Binding Groups}" FilterMode="StartsWith" />
               <TextBlock Grid.Row="2" Text="Host" />
-              <Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="*,Auto,100">
+              <Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="*,Auto,140">
                 <TextBox Text="{Binding EditSite.Host}" PlaceholderText="ftp.example.org" />
                 <TextBlock Grid.Column="1" Text="Port" VerticalAlignment="Center" Margin="10,0,6,0" />
                 <NumericUpDown Grid.Column="2" Value="{Binding EditSite.Port}" Minimum="1" Maximum="65535" FormatString="0" />
@@ -72,7 +72,11 @@
               <TextBlock Grid.Row="4" Text="Passwort" />
               <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding EditSite.Password}" PasswordChar="•" RevealPassword="False" />
               <TextBlock Grid.Row="5" Text="Verschlüsselung" />
-              <ComboBox Grid.Row="5" Grid.Column="1" ItemsSource="{x:Static vm:SiteManagerViewModel.TlsModes}" SelectedItem="{Binding EditSite.TlsMode}" />
+              <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <ComboBox ItemsSource="{x:Static vm:SiteManagerViewModel.TlsModes}" SelectedItem="{Binding EditSite.TlsMode}" />
+                <TextBlock Text="TLS-Version" VerticalAlignment="Center" Margin="8,0,0,0" />
+                <ComboBox ItemsSource="{x:Static vm:SiteManagerViewModel.TlsVersions}" SelectedItem="{Binding EditSite.TlsVersion}" ToolTip.Tip="Auto: TLS 1.3, bei Session-Reuse-Problemen automatisch TLS 1.2" />
+              </StackPanel>
               <TextBlock Grid.Row="6" Text="" />
               <StackPanel Grid.Row="6" Grid.Column="1" Spacing="2">
                 <CheckBox Content="Datenverbindung verschlüsseln (PROT P)" IsChecked="{Binding EditSite.ProtectData}" />

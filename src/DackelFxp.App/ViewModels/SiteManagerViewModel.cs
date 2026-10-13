@@ -36,6 +36,7 @@ public sealed partial class SiteManagerViewModel : ObservableObject
     public IReadOnlyList<string> SkipLists => [.. _services.Settings.Current.SkipLists.Select(s => s.Name)];
 
     public static FtpTlsMode[] TlsModes { get; } = Enum.GetValues<FtpTlsMode>();
+    public static TlsVersion[] TlsVersions { get; } = Enum.GetValues<TlsVersion>();
     public static FtpDataMode[] DataModes { get; } = Enum.GetValues<FtpDataMode>();
     public static FtpListMethod[] ListMethods { get; } = Enum.GetValues<FtpListMethod>();
     public static FtpPretMode[] PretModes { get; } = Enum.GetValues<FtpPretMode>();

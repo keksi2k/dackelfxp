@@ -1,4 +1,5 @@
 using System.Net.Security;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
@@ -28,6 +29,9 @@ public sealed class FtpOptions
     /// <summary>Clear the control channel (CCC) after login.</summary>
     public bool ClearControlChannel { get; init; }
     public FtpCertificateValidator? CertificateValidator { get; init; }
+    /// <summary>None = OS default (TLS 1.2/1.3). With TLS 1.3 the client falls back to 1.2 automatically
+    /// if the server needs session reuse on data connections (vsftpd require_ssl_reuse with OpenSSL).</summary>
+    public SslProtocols TlsProtocols { get; init; } = SslProtocols.None;
 
     public FtpDataMode DataMode { get; init; } = FtpDataMode.Passive;
     /// <summary>Ignore the IP returned by PASV and use the control connection host instead.</summary>
