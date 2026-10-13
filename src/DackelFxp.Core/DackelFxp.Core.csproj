@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\DackelFxp.Ftp\DackelFxp.Ftp.csproj" />
+    <PackageReference Include="System.IO.Hashing" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="DackelFxp.Core.Tests" />
+  </ItemGroup>
+</Project>

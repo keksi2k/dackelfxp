@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DackelFxp.App/DackelFxp.App.csproj" />
+    <Project Path="src/DackelFxp.Core/DackelFxp.Core.csproj" />
+    <Project Path="src/DackelFxp.Ftp/DackelFxp.Ftp.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DackelFxp.Core.Tests/DackelFxp.Core.Tests.csproj" />
+    <Project Path="tests/DackelFxp.Ftp.Tests/DackelFxp.Ftp.Tests.csproj" />
+    <Project Path="tests/DackelFxp.IntegrationTests/DackelFxp.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
