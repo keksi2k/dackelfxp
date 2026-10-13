@@ -304,7 +304,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     [RelayCommand]
     private Task AboutAsync() => _services.Dialogs.ShowMessageAsync(Lang.T("Über DackelFXP", "About DackelFXP"),
-        $"DackelFXP – FTP/FTPS/FXP-Client\n.NET {Environment.Version}, {System.Runtime.InteropServices.RuntimeInformation.OSDescription}\n\n" +
+        $"DackelFXP {typeof(MainWindowViewModel).Assembly.GetName().Version?.ToString(3)} – FTP/FTPS/FXP-Client\n.NET {Environment.Version}, {System.Runtime.InteropServices.RuntimeInformation.OSDescription}\n\n" +
         Lang.T("Unterstützt: FTP, FTPS (explizit/implizit), Secure FXP (SSCN/CPSV), PRET, MLSD/STAT -l, Queue, Skiplisten, Planer.", "Supports: FTP, FTPS (explicit/implicit), secure FXP (SSCN/CPSV), PRET, MLSD/STAT -l, queue, skiplists, scheduler."));
 
     [RelayCommand]
