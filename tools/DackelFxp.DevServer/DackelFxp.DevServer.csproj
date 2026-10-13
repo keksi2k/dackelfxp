@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Two in-memory FTP servers for manually testing the GUI (not for production use). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\tests\DackelFxp.Ftp.Tests\FakeFtpServer.cs" Link="FakeFtpServer.cs" />
+  </ItemGroup>
+</Project>

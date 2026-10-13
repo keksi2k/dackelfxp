@@ -1,0 +1,96 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DackelFxp.App.ViewModels"
+             xmlns:q="using:DackelFxp.Core.Queue"
+             xmlns:conv="using:DackelFxp.App.Converters"
+             x:Class="DackelFxp.App.Views.QueueView"
+             x:DataType="vm:QueueViewModel">
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="4" Margin="4">
+      <Button Content="▶ Start" Command="{Binding StartCommand}" IsVisible="{Binding !IsRunning}" />
+      <Button Content="■ Stopp" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}" />
+      <Button Content="⤒" Command="{Binding MoveTopCommand}" ToolTip.Tip="Ganz nach oben" />
+      <Button Content="↑" Command="{Binding MoveUpCommand}" ToolTip.Tip="Nach oben" />
+      <Button Content="↓" Command="{Binding MoveDownCommand}" ToolTip.Tip="Nach unten" />
+      <Button Content="⤓" Command="{Binding MoveBottomCommand}" ToolTip.Tip="Ganz nach unten" />
+      <Button Content="Entfernen" Command="{Binding RemoveSelectedCommand}" />
+      <Button Content="Fertige entfernen" Command="{Binding RemoveFinishedCommand}" />
+    </StackPanel>
+    <DataGrid x:Name="Grid" ItemsSource="{Binding Items}" SelectionMode="Extended" CanUserSortColumns="False">
+      <DataGrid.ContextMenu>
+        <ContextMenu>
+          <MenuItem Header="Wiederholen" Command="{Binding RetryCommand}" />
+          <MenuItem Header="Pausieren / Abbrechen" Command="{Binding PauseCommand}" />
+          <Separator />
+          <MenuItem Header="Ganz nach oben" Command="{Binding MoveTopCommand}" />
+          <MenuItem Header="Ganz nach unten" Command="{Binding MoveBottomCommand}" />
+          <Separator />
+          <MenuItem Header="Entfernen" InputGesture="Delete" Command="{Binding RemoveSelectedCommand}" />
+          <MenuItem Header="Fertige entfernen" Command="{Binding RemoveFinishedCommand}" />
+        </ContextMenu>
+      </DataGrid.ContextMenu>
+      <DataGrid.Columns>
+        <DataGridTemplateColumn Header="" Width="28">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="q:QueueItem">
+              <TextBlock Text="{Binding Kind, Converter={x:Static conv:Formats.KindConverter}}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                         Foreground="{Binding Status, Converter={x:Static conv:Formats.StatusBrushConverter}}" />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="Name" Width="2*">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="q:QueueItem">
+              <StackPanel Orientation="Horizontal" Spacing="4" Margin="6,0" VerticalAlignment="Center">
+                <PathIcon Width="13" Height="13" Data="{StaticResource FolderIcon}" Foreground="Goldenrod" IsVisible="{Binding IsDirectory}" />
+                <TextBlock Text="{Binding Name}" ToolTip.Tip="{Binding Source.Path}" />
+              </StackPanel>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="Quelle" Width="*">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="q:QueueItem">
+              <TextBlock Text="{Binding Source.SiteName}" ToolTip.Tip="{Binding Source.Path}" VerticalAlignment="Center" Margin="6,0" />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="Ziel" Width="2*">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="q:QueueItem">
+              <TextBlock VerticalAlignment="Center" Margin="6,0" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Target.Path}">
+                <Run Text="{Binding Target.SiteName, Mode=OneWay}" FontWeight="SemiBold" />
+                <Run Text="{Binding Target.Path, Mode=OneWay}" />
+              </TextBlock>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="Größe" Width="85">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="q:QueueItem">
+              <TextBlock Text="{Binding Size, Converter={x:Static conv:Formats.BytesConverter}}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="6,0" />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="Fortschritt" Width="130">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="q:QueueItem">
+              <Grid Margin="4,3">
+                <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" MinHeight="14" />
+                <TextBlock Text="{Binding Speed, Converter={x:Static conv:Formats.SpeedConverter}}" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="Status" Width="2*">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="q:QueueItem">
+              <TextBlock Text="{Binding StatusText}" ToolTip.Tip="{Binding StatusText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="6,0"
+                         Foreground="{Binding Status, Converter={x:Static conv:Formats.StatusBrushConverter}}" />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</UserControl>

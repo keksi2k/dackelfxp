@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DackelFxp.App.ViewModels"
+             xmlns:svc="using:DackelFxp.App.Services"
+             xmlns:conv="using:DackelFxp.App.Converters"
+             x:Class="DackelFxp.App.Views.LogView"
+             x:DataType="vm:LogViewModel">
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="4">
+      <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" MinWidth="180" />
+      <CheckBox Content="Automatisch scrollen" IsChecked="{Binding AutoScroll}" />
+      <Button Content="Leeren" Command="{Binding ClearCommand}" />
+      <Button Content="Speichern..." Command="{Binding SaveCommand}" />
+    </StackPanel>
+    <ListBox x:Name="List" ItemsSource="{Binding Lines}" Padding="0" SelectionMode="Multiple">
+      <ListBox.Styles>
+        <Style Selector="ListBoxItem">
+          <Setter Property="Padding" Value="6,0" />
+          <Setter Property="MinHeight" Value="18" />
+        </Style>
+      </ListBox.Styles>
+      <ListBox.ItemsPanel>
+        <ItemsPanelTemplate>
+          <VirtualizingStackPanel />
+        </ItemsPanelTemplate>
+      </ListBox.ItemsPanel>
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="svc:LogLine">
+          <TextBlock Classes="log" Foreground="{Binding Kind, Converter={x:Static conv:Formats.LogBrushConverter}}">
+            <Run Text="{Binding TimeText, Mode=OneWay}" />
+            <Run Text="[" /><Run Text="{Binding Source, Mode=OneWay}" /><Run Text="]" />
+            <Run Text="{Binding Text, Mode=OneWay}" />
+          </TextBlock>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DockPanel>
+</UserControl>

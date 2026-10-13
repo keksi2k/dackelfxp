@@ -416,6 +416,7 @@ public sealed class TransferEngine : IAsyncDisposable
             .ToList();
         _queue.InsertAfter(item, ordered);
         item.Size = ordered.Where(c => !c.IsDirectory).Sum(c => c.Size);
+        item.Transferred = item.Size;
         return null;
     }
 

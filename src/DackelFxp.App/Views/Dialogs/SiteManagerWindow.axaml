@@ -1,0 +1,158 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:DackelFxp.App.ViewModels"
+        xmlns:sites="using:DackelFxp.Core.Sites"
+        xmlns:conv="using:DackelFxp.App.Converters"
+        x:Class="DackelFxp.App.Views.Dialogs.SiteManagerWindow"
+        x:DataType="vm:SiteManagerViewModel"
+        Title="Site-Manager" Width="960" Height="640" MinWidth="760" MinHeight="480"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+  <Window.Styles>
+    <Style Selector="Grid.form > TextBlock">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,0,12,0" />
+    </Style>
+    <Style Selector="Grid.form > :is(Control)">
+      <Setter Property="Margin" Value="0,3" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel Margin="10">
+    <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+      <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="6">
+        <Button Content="Neue Site" Command="{Binding NewSiteCommand}" />
+        <Button Content="Neue Gruppe" Command="{Binding NewGroupCommand}" />
+        <Button Content="Kopieren" Command="{Binding DuplicateCommand}" IsEnabled="{Binding HasSite}" />
+        <Button Content="Löschen" Command="{Binding DeleteCommand}" />
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+        <Button Content="Speichern" Command="{Binding SaveCommand}" IsEnabled="{Binding HasSite}" />
+        <Button Content="Links verbinden" Command="{Binding ConnectLeftCommand}" IsEnabled="{Binding HasSite}" />
+        <Button Content="Rechts verbinden" Command="{Binding ConnectRightCommand}" IsEnabled="{Binding HasSite}" IsDefault="True" />
+        <Button Content="Schließen" Command="{Binding CancelCommand}" IsCancel="True" />
+      </StackPanel>
+    </DockPanel>
+
+    <Grid ColumnDefinitions="260,8,*">
+      <TreeView ItemsSource="{Binding Roots}" SelectedItem="{Binding SelectedNode}">
+        <TreeView.ItemContainerTheme>
+          <ControlTheme TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}" x:DataType="vm:SiteTreeNode">
+            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+          </ControlTheme>
+        </TreeView.ItemContainerTheme>
+        <TreeView.ItemTemplate>
+          <TreeDataTemplate ItemsSource="{Binding Children}" x:DataType="vm:SiteTreeNode">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <PathIcon Width="14" Height="14" Data="{Binding Icon, Converter={x:Static conv:IconConverter.Instance}}" />
+              <TextBlock Text="{Binding Name}" />
+            </StackPanel>
+          </TreeDataTemplate>
+        </TreeView.ItemTemplate>
+      </TreeView>
+
+      <TextBlock Grid.Column="2" Text="Site auswählen oder neu anlegen." IsVisible="{Binding !HasSite}" Classes="muted"
+                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+      <TabControl Grid.Column="2" IsVisible="{Binding HasSite}">
+        <TabItem Header="Allgemein">
+          <ScrollViewer>
+            <Grid Classes="form" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="4,8">
+              <TextBlock Grid.Row="0" Text="Name" />
+              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding EditSite.Name}" />
+              <TextBlock Grid.Row="1" Text="Gruppe" />
+              <AutoCompleteBox Grid.Row="1" Grid.Column="1" Text="{Binding EditSite.Group}" ItemsSource="{Binding Groups}" FilterMode="StartsWith" />
+              <TextBlock Grid.Row="2" Text="Host" />
+              <Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="*,Auto,100">
+                <TextBox Text="{Binding EditSite.Host}" PlaceholderText="ftp.example.org" />
+                <TextBlock Grid.Column="1" Text="Port" VerticalAlignment="Center" Margin="10,0,6,0" />
+                <NumericUpDown Grid.Column="2" Value="{Binding EditSite.Port}" Minimum="1" Maximum="65535" FormatString="0" />
+              </Grid>
+              <TextBlock Grid.Row="3" Text="Benutzer" />
+              <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding EditSite.User}" />
+              <TextBlock Grid.Row="4" Text="Passwort" />
+              <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding EditSite.Password}" PasswordChar="•" RevealPassword="False" />
+              <TextBlock Grid.Row="5" Text="Verschlüsselung" />
+              <ComboBox Grid.Row="5" Grid.Column="1" ItemsSource="{x:Static vm:SiteManagerViewModel.TlsModes}" SelectedItem="{Binding EditSite.TlsMode}" />
+              <TextBlock Grid.Row="6" Text="" />
+              <StackPanel Grid.Row="6" Grid.Column="1" Spacing="2">
+                <CheckBox Content="Datenverbindung verschlüsseln (PROT P)" IsChecked="{Binding EditSite.ProtectData}" />
+                <CheckBox Content="Steuerkanal nach Login unverschlüsseln (CCC)" IsChecked="{Binding EditSite.ClearControlChannel}" />
+              </StackPanel>
+              <TextBlock Grid.Row="7" Text="Zertifikat" />
+              <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding EditSite.TrustedCertificate}" PlaceholderText="SHA-256 – wird beim ersten Verbinden gesetzt" FontSize="11" />
+              <TextBlock Grid.Row="8" Text="Notizen" VerticalAlignment="Top" />
+              <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding EditSite.Notes}" AcceptsReturn="True" Height="90" TextWrapping="Wrap" />
+            </Grid>
+          </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="Verbindung">
+          <ScrollViewer>
+            <Grid Classes="form" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="4,8">
+              <TextBlock Grid.Row="0" Text="Datenverbindung" />
+              <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{x:Static vm:SiteManagerViewModel.DataModes}" SelectedItem="{Binding EditSite.DataMode}" />
+              <TextBlock Grid.Row="1" Text="" />
+              <CheckBox Grid.Row="1" Grid.Column="1" Content="Private PASV-Adressen durch Server-IP ersetzen (NAT)" IsChecked="{Binding EditSite.PassiveUseControlHost}" />
+              <TextBlock Grid.Row="2" Text="Listing" />
+              <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{x:Static vm:SiteManagerViewModel.ListMethods}" SelectedItem="{Binding EditSite.ListMethod}" />
+              <TextBlock Grid.Row="3" Text="PRET" />
+              <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{x:Static vm:SiteManagerViewModel.PretModes}" SelectedItem="{Binding EditSite.PretMode}" />
+              <TextBlock Grid.Row="4" Text="Zeichensatz" />
+              <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{x:Static vm:SiteManagerViewModel.Encodings}" SelectedItem="{Binding EditSite.Encoding}" />
+              <TextBlock Grid.Row="5" Text="Zeitzone (Std.)" />
+              <NumericUpDown Grid.Row="5" Grid.Column="1" Value="{Binding EditSite.TimeZoneOffsetHours}" Minimum="-14" Maximum="14" Increment="0.5" FormatString="0.0" Width="120" HorizontalAlignment="Left" />
+              <TextBlock Grid.Row="6" Text="Max. Verbindungen" />
+              <NumericUpDown Grid.Row="6" Grid.Column="1" Value="{Binding EditSite.MaxConnections}" Minimum="1" Maximum="20" FormatString="0" Width="120" HorizontalAlignment="Left" />
+              <TextBlock Grid.Row="7" Text="Keep-Alive (Sek.)" />
+              <NumericUpDown Grid.Row="7" Grid.Column="1" Value="{Binding EditSite.KeepAliveSeconds}" Minimum="0" Maximum="3600" FormatString="0" Width="120" HorizontalAlignment="Left" />
+              <TextBlock Grid.Row="8" Text="Wiederholungen" />
+              <StackPanel Grid.Row="8" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <NumericUpDown Value="{Binding EditSite.RetryCount}" Minimum="0" Maximum="100" FormatString="0" Width="120" />
+                <TextBlock Text="Pause (Sek.)" VerticalAlignment="Center" />
+                <NumericUpDown Value="{Binding EditSite.RetryDelaySeconds}" Minimum="0" Maximum="3600" FormatString="0" Width="120" />
+              </StackPanel>
+              <TextBlock Grid.Row="9" Text="Speedlimit (KB/s)" />
+              <NumericUpDown Grid.Row="9" Grid.Column="1" Value="{Binding EditSite.SpeedLimitKb}" Minimum="0" Maximum="10000000" FormatString="0" Width="120" HorizontalAlignment="Left" />
+            </Grid>
+          </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="FXP">
+          <Grid Classes="form" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="4,8">
+            <TextBlock Grid.Row="0" Text="Secure FXP" />
+            <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{x:Static vm:SiteManagerViewModel.FxpSecureModes}" SelectedItem="{Binding EditSite.FxpSecureMode}" />
+            <TextBlock Grid.Row="1" Text="" />
+            <CheckBox Grid.Row="1" Grid.Column="1" Content="Unverschlüsseltes FXP erlauben, wenn SSCN/CPSV scheitern" IsChecked="{Binding EditSite.FxpAllowClear}" />
+            <TextBlock Grid.Row="2" Text="PASV-Seite" />
+            <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{x:Static vm:SiteManagerViewModel.FxpPassiveSides}" SelectedItem="{Binding EditSite.FxpPassiveSide}" />
+            <TextBlock Grid.Row="3" Grid.ColumnSpan="2" TextWrapping="Wrap" Classes="muted" Margin="0,12,0,0"
+                       Text="Auto probiert SSCN auf der PASV-Seite, dann auf der PORT-Seite, dann CPSV. Die funktionierende Variante wird pro Site-Paar gemerkt. Ist eine Seite unverschlüsselt (kein TLS), läuft FXP immer mit PROT C." />
+          </Grid>
+        </TabItem>
+
+        <TabItem Header="Pfade &amp; Lesezeichen">
+          <Grid Classes="form" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" Margin="4,8">
+            <TextBlock Grid.Row="0" Text="Remote-Startpfad" />
+            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding EditSite.RemotePath}" PlaceholderText="leer = Home-Verzeichnis" />
+            <TextBlock Grid.Row="1" Text="Lokaler Pfad" />
+            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding EditSite.LocalPath}" PlaceholderText="Wird beim Verbinden in der anderen Seite geöffnet" />
+            <TextBlock Grid.Row="2" Text="Skipliste" />
+            <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding SkipLists}" SelectedItem="{Binding EditSite.SkipListName}" PlaceholderText="Standard" />
+            <TextBlock Grid.Row="3" Text="Lesezeichen" />
+            <ListBox Grid.Row="4" Grid.ColumnSpan="2" ItemsSource="{Binding Bookmarks}" SelectedItem="{Binding SelectedBookmark}" MinHeight="120">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="sites:Bookmark">
+                  <TextBlock>
+                    <Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold" />
+                    <Run Text="{Binding RemotePath, Mode=OneWay}" />
+                  </TextBlock>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <Button Grid.Row="5" Grid.Column="1" Content="Lesezeichen entfernen" Command="{Binding RemoveBookmarkCommand}" HorizontalAlignment="Right" />
+          </Grid>
+        </TabItem>
+      </TabControl>
+    </Grid>
+  </DockPanel>
+</Window>

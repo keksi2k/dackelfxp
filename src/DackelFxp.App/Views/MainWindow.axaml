@@ -1,0 +1,88 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:DackelFxp.App.ViewModels"
+        xmlns:views="using:DackelFxp.App.Views"
+        xmlns:sites="using:DackelFxp.Core.Sites"
+        x:Class="DackelFxp.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="DackelFXP"
+        Width="1400" Height="900" MinWidth="800" MinHeight="500"
+        WindowStartupLocation="CenterScreen">
+
+  <Window.KeyBindings>
+    <KeyBinding Gesture="F4" Command="{Binding OpenSiteManagerCommand}" />
+    <KeyBinding Gesture="F8" Command="{Binding QuickConnectCommand}" />
+    <KeyBinding Gesture="Ctrl+M" Command="{Binding CompareFoldersCommand}" />
+    <KeyBinding Gesture="F9" Command="{Binding Queue.StartCommand}" />
+    <KeyBinding Gesture="Shift+F9" Command="{Binding Queue.StopCommand}" />
+    <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenSettingsCommand}" />
+  </Window.KeyBindings>
+
+  <DockPanel>
+    <Menu DockPanel.Dock="Top">
+      <MenuItem Header="_Sites">
+        <MenuItem Header="Site-Manager..." InputGesture="F4" Command="{Binding OpenSiteManagerCommand}" />
+        <MenuItem Header="Schnellverbindung..." InputGesture="F8" Command="{Binding QuickConnectCommand}" />
+        <MenuItem Header="Verbinden mit" ItemsSource="{Binding Sites}">
+          <MenuItem.ItemContainerTheme>
+            <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="sites:Site">
+              <Setter Property="Header" Value="{Binding DisplayName}" />
+              <Setter Property="Command" Value="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ConnectSiteCommand}" />
+              <Setter Property="CommandParameter" Value="{Binding}" />
+            </ControlTheme>
+          </MenuItem.ItemContainerTheme>
+        </MenuItem>
+        <Separator />
+        <MenuItem Header="Alle Verbindungen trennen" Command="{Binding DisconnectAllCommand}" />
+        <MenuItem Header="Master-Passwort..." Command="{Binding SetMasterPasswordCommand}" />
+        <Separator />
+        <MenuItem Header="Beenden" Command="{Binding ExitCommand}" />
+      </MenuItem>
+      <MenuItem Header="_Queue">
+        <MenuItem Header="Starten" InputGesture="F9" Command="{Binding Queue.StartCommand}" />
+        <MenuItem Header="Stoppen" InputGesture="Shift+F9" Command="{Binding Queue.StopCommand}" />
+        <Separator />
+        <MenuItem Header="Fehlgeschlagene wiederholen" Command="{Binding Queue.RetryAllFailedCommand}" />
+        <MenuItem Header="Fertige entfernen" Command="{Binding Queue.RemoveFinishedCommand}" />
+        <MenuItem Header="Queue leeren" Command="{Binding Queue.ClearCommand}" />
+        <Separator />
+        <MenuItem Header="Queue speichern..." Command="{Binding Queue.SaveCommand}" />
+        <MenuItem Header="Queue laden..." Command="{Binding Queue.LoadCommand}" />
+      </MenuItem>
+      <MenuItem Header="_Werkzeuge">
+        <MenuItem Header="Ordner vergleichen" InputGesture="Ctrl+M" Command="{Binding CompareFoldersCommand}" />
+        <MenuItem Header="Vergleich aufheben" Command="{Binding ClearCompareCommand}" />
+        <MenuItem Header="Unterschiede in Queue (aktive Seite)" Command="{Binding TransferDifferencesCommand}" />
+        <Separator />
+        <MenuItem Header="Einstellungen..." InputGesture="Ctrl+O" Command="{Binding OpenSettingsCommand}" />
+      </MenuItem>
+      <MenuItem Header="_Hilfe">
+        <MenuItem Header="Über DackelFXP" Command="{Binding AboutCommand}" />
+      </MenuItem>
+    </Menu>
+
+    <Border DockPanel.Dock="Bottom" Padding="6,2" Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Right" Text="{Binding Queue.TotalSpeed}" FontWeight="SemiBold" />
+        <TextBlock Text="{Binding Queue.Summary}" Classes="muted" />
+      </DockPanel>
+    </Border>
+
+    <Grid RowDefinitions="*,4,240">
+      <Grid ColumnDefinitions="*,4,*">
+        <views:BrowserPaneView Grid.Column="0" DataContext="{Binding Left}" x:Name="LeftPane" />
+        <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+        <views:BrowserPaneView Grid.Column="2" DataContext="{Binding Right}" x:Name="RightPane" />
+      </Grid>
+      <GridSplitter Grid.Row="1" ResizeDirection="Rows" />
+      <TabControl Grid.Row="2" Padding="0">
+        <TabItem Header="Queue">
+          <views:QueueView DataContext="{Binding Queue}" />
+        </TabItem>
+        <TabItem Header="Log">
+          <views:LogView DataContext="{Binding Log}" />
+        </TabItem>
+      </TabControl>
+    </Grid>
+  </DockPanel>
+</Window>

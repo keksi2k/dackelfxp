@@ -1,0 +1,147 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:DackelFxp.App.ViewModels"
+             xmlns:sites="using:DackelFxp.Core.Sites"
+             xmlns:settings="using:DackelFxp.Core.Settings"
+             xmlns:conv="using:DackelFxp.App.Converters"
+             x:Class="DackelFxp.App.Views.BrowserPaneView"
+             x:DataType="vm:BrowserPaneViewModel">
+  <UserControl.Styles>
+    <Style Selector="Button.tool">
+      <Setter Property="Padding" Value="6,2" />
+      <Setter Property="MinWidth" Value="28" />
+    </Style>
+    <Style Selector="TextBlock.name.only">
+      <Setter Property="Foreground" Value="MediumSeaGreen" />
+    </Style>
+    <Style Selector="TextBlock.name.diff">
+      <Setter Property="Foreground" Value="Orange" />
+    </Style>
+    <Style Selector="TextBlock.name.same">
+      <Setter Property="Opacity" Value="0.5" />
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel>
+    <Border DockPanel.Dock="Top" Classes="pane-header" Classes.active="{Binding IsActive}">
+      <StackPanel Spacing="4">
+        <DockPanel>
+          <Menu DockPanel.Dock="Left">
+            <MenuItem Header="{Binding Title}" FontWeight="SemiBold" ItemsSource="{Binding Sites}" ToolTip.Tip="Mit Site verbinden">
+              <MenuItem.ItemContainerTheme>
+                <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="sites:Site">
+                  <Setter Property="Header" Value="{Binding DisplayName}" />
+                  <Setter Property="Command" Value="{Binding $parent[UserControl].((vm:BrowserPaneViewModel)DataContext).ConnectCommand}" />
+                  <Setter Property="CommandParameter" Value="{Binding}" />
+                </ControlTheme>
+              </MenuItem.ItemContainerTheme>
+            </MenuItem>
+            <MenuItem Header="★" ItemsSource="{Binding Bookmarks}" IsVisible="{Binding IsRemote}" ToolTip.Tip="Lesezeichen">
+              <MenuItem.ItemContainerTheme>
+                <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="sites:Bookmark">
+                  <Setter Property="Header" Value="{Binding Name}" />
+                  <Setter Property="Command" Value="{Binding $parent[UserControl].((vm:BrowserPaneViewModel)DataContext).GoToBookmarkCommand}" />
+                  <Setter Property="CommandParameter" Value="{Binding}" />
+                </ControlTheme>
+              </MenuItem.ItemContainerTheme>
+            </MenuItem>
+          </Menu>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2">
+            <Button Classes="tool" Content="Lokal" Command="{Binding ConnectLocalCommand}" ToolTip.Tip="Lokales Dateisystem" />
+            <Button Classes="tool" Content="Trennen" Command="{Binding DisconnectCommand}" IsVisible="{Binding IsRemote}" />
+            <Button Classes="tool" Content="+★" Command="{Binding AddBookmarkCommand}" IsVisible="{Binding IsRemote}" ToolTip.Tip="Lesezeichen hinzufügen" />
+          </StackPanel>
+          <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Height="4" MinWidth="40" Margin="8,0" VerticalAlignment="Center" />
+        </DockPanel>
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="2" Margin="0,0,4,0">
+            <Button Classes="tool" Content="←" Command="{Binding BackCommand}" ToolTip.Tip="Zurück" />
+            <Button Classes="tool" Content="↑" Command="{Binding UpCommand}" ToolTip.Tip="Übergeordneter Ordner (Backspace)" />
+            <Button Classes="tool" Content="⟳" Command="{Binding RefreshCommand}" ToolTip.Tip="Aktualisieren (F5)" />
+            <Button Classes="tool" Content="⌂" Command="{Binding HomeCommand}" ToolTip.Tip="Startverzeichnis" />
+          </StackPanel>
+          <TextBox DockPanel.Dock="Right" Width="110" PlaceholderText="Filter" Text="{Binding Filter}" Margin="4,0,0,0" />
+          <TextBox Text="{Binding PathText}" x:Name="PathBox">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding NavigateToPathTextCommand}" />
+            </TextBox.KeyBindings>
+          </TextBox>
+        </DockPanel>
+      </StackPanel>
+    </Border>
+
+    <Border DockPanel.Dock="Bottom" Padding="6,2">
+      <TextBlock Text="{Binding StatusText}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
+    </Border>
+
+    <DataGrid x:Name="Grid" ItemsSource="{Binding Items}" SelectionMode="Extended" DragDrop.AllowDrop="True">
+      <DataGrid.ContextMenu>
+        <ContextMenu>
+          <MenuItem Header="Übertragen" InputGesture="Ctrl+T" Command="{Binding TransferSelectedCommand}" />
+          <MenuItem Header="In Queue" InputGesture="Ctrl+Q" Command="{Binding QueueSelectedCommand}" />
+          <Separator />
+          <MenuItem Header="Anzeigen / Bearbeiten" InputGesture="F3" Command="{Binding ViewEditCommand}" />
+          <MenuItem Header="Umbenennen" InputGesture="F2" Command="{Binding RenameCommand}" />
+          <MenuItem Header="Löschen" InputGesture="Delete" Command="{Binding DeleteCommand}" />
+          <MenuItem Header="Neuer Ordner" InputGesture="F7" Command="{Binding MakeDirectoryCommand}" />
+          <MenuItem Header="Rechte ändern (CHMOD)" Command="{Binding ChmodCommand}" IsVisible="{Binding IsRemote}" />
+          <Separator />
+          <MenuItem Header="Befehl senden..." Command="{Binding RawCommandCommand}" IsVisible="{Binding IsRemote}" />
+          <MenuItem Header="Benutzerbefehle" ItemsSource="{Binding CustomCommands}" IsVisible="{Binding IsRemote}">
+            <MenuItem.ItemContainerTheme>
+              <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="settings:CustomCommand">
+                <Setter Property="Header" Value="{Binding Name}" />
+                <Setter Property="Command" Value="{Binding $parent[UserControl].((vm:BrowserPaneViewModel)DataContext).RunCustomCommandCommand}" />
+                <Setter Property="CommandParameter" Value="{Binding}" />
+              </ControlTheme>
+            </MenuItem.ItemContainerTheme>
+          </MenuItem>
+          <MenuItem Header="SFV prüfen" Command="{Binding VerifySfvCommand}" />
+          <Separator />
+          <MenuItem Header="Aktualisieren" InputGesture="F5" Command="{Binding RefreshCommand}" />
+        </ContextMenu>
+      </DataGrid.ContextMenu>
+      <DataGrid.Columns>
+        <DataGridTemplateColumn Header="Name" Width="*" SortMemberPath="SortName" MinWidth="120">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="vm:FileEntryViewModel">
+              <StackPanel Orientation="Horizontal" Spacing="6" Margin="6,0">
+                <PathIcon Width="14" Height="14" Data="{Binding IconKey, Converter={x:Static conv:IconConverter.Instance}}" Foreground="{Binding IconBrush}" />
+                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Classes="name"
+                           Classes.only="{Binding IsCompareOnly}" Classes.diff="{Binding IsCompareDifferent}" Classes.same="{Binding IsCompareSame}" />
+              </StackPanel>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="Größe" Width="90" SortMemberPath="Size">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="vm:FileEntryViewModel">
+              <TextBlock Text="{Binding SizeText}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="6,0" />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="Datum" Width="145" SortMemberPath="Modified">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="vm:FileEntryViewModel">
+              <TextBlock Text="{Binding ModifiedText}" VerticalAlignment="Center" Margin="6,0" />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="Rechte" Width="85" SortMemberPath="Permissions">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="vm:FileEntryViewModel">
+              <TextBlock Text="{Binding Permissions}" VerticalAlignment="Center" Margin="6,0" Classes="log" />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="Besitzer" Width="100" SortMemberPath="Owner">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="vm:FileEntryViewModel">
+              <TextBlock Text="{Binding Owner}" VerticalAlignment="Center" Margin="6,0" />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</UserControl>

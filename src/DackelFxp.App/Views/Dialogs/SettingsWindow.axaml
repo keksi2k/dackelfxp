@@ -1,0 +1,223 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:DackelFxp.App.ViewModels"
+        xmlns:rules="using:DackelFxp.Core.Rules"
+        xmlns:settings="using:DackelFxp.Core.Settings"
+        x:Class="DackelFxp.App.Views.Dialogs.SettingsWindow"
+        x:DataType="vm:SettingsViewModel"
+        Title="Einstellungen" Width="900" Height="620" MinWidth="720" MinHeight="480"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+  <Window.Styles>
+    <Style Selector="Grid.form > TextBlock">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,0,12,0" />
+    </Style>
+    <Style Selector="Grid.form > :is(Control)">
+      <Setter Property="Margin" Value="0,3" />
+    </Style>
+    <Style Selector="NumericUpDown">
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="Width" Value="140" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel Margin="10">
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" Margin="0,10,0,0">
+      <Button Content="Speichern" Command="{Binding SaveCommand}" IsDefault="True" />
+      <Button Content="Abbrechen" Command="{Binding CancelCommand}" IsCancel="True" />
+    </StackPanel>
+
+    <TabControl TabStripPlacement="Left">
+      <TabItem Header="Allgemein">
+        <ScrollViewer>
+          <Grid Classes="form" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="8">
+            <TextBlock Grid.Row="0" Text="Parallele Transfers" />
+            <NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding Settings.TransferSlots}" Minimum="1" Maximum="20" FormatString="0" />
+            <TextBlock Grid.Row="1" Text="Globales Speedlimit (KB/s)" />
+            <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding Settings.GlobalSpeedLimitKb}" Minimum="0" Maximum="10000000" FormatString="0" />
+            <TextBlock Grid.Row="2" Text="Leerlauf-Trennung (Min.)" />
+            <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding Settings.IdleDisconnectMinutes}" Minimum="0" Maximum="1440" FormatString="0" />
+            <TextBlock Grid.Row="3" Text="Nach der Queue" />
+            <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.CompletionActions}" SelectedItem="{Binding Settings.OnQueueComplete}" />
+            <TextBlock Grid.Row="4" Text="Design" />
+            <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.Themes}" SelectedItem="{Binding Settings.Theme}" />
+            <TextBlock Grid.Row="5" Text="" />
+            <StackPanel Grid.Row="5" Grid.Column="1" Spacing="2">
+              <CheckBox Content="Dateien vor Ordnern übertragen" IsChecked="{Binding Settings.TransferFilesBeforeFolders}" />
+              <CheckBox Content="Zeitstempel übernehmen (MFMT / lokal)" IsChecked="{Binding Settings.PreserveTimestamps}" />
+              <CheckBox Content="Downloads gegen .sfv prüfen (CRC32)" IsChecked="{Binding Settings.VerifySfvAfterDownload}" />
+            </StackPanel>
+          </Grid>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Datei existiert">
+        <Grid Classes="form" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="8">
+          <TextBlock Grid.Row="0" Text="Ziel ist kleiner" />
+          <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.ExistsActions}" SelectedItem="{Binding Settings.FileExists.WhenSmaller}" />
+          <TextBlock Grid.Row="1" Text="Ziel ist gleich groß" />
+          <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.ExistsActions}" SelectedItem="{Binding Settings.FileExists.WhenEqual}" />
+          <TextBlock Grid.Row="2" Text="Ziel ist größer" />
+          <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.ExistsActions}" SelectedItem="{Binding Settings.FileExists.WhenLarger}" />
+          <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Classes="muted" TextWrapping="Wrap" Margin="0,10,0,0"
+                     Text="Resume = Fortsetzen ab der vorhandenen Größe (REST). Ask = jedes Mal nachfragen." />
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Skiplisten">
+        <DockPanel Margin="8">
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="0,0,0,6">
+            <ComboBox ItemsSource="{Binding SkipLists}" SelectedItem="{Binding SelectedSkipList}" MinWidth="200">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="rules:SkipList">
+                  <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Content="Neue Liste" Command="{Binding AddSkipListCommand}" />
+            <Button Content="Liste löschen" Command="{Binding RemoveSkipListCommand}" />
+            <TextBlock Text="Standard:" VerticalAlignment="Center" Margin="12,0,0,0" />
+            <TextBox Text="{Binding Settings.DefaultSkipList}" Width="140" />
+          </StackPanel>
+          <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="6" Margin="0,6,0,0">
+            <Button Content="Regel hinzufügen" Command="{Binding AddRuleCommand}" />
+            <Button Content="Regel entfernen" Command="{Binding RemoveRuleCommand}" />
+            <TextBlock Classes="muted" VerticalAlignment="Center" Text="Muster: * und ? oder Regex. Priorität: höher = früher, negativ = später." />
+          </StackPanel>
+          <DataGrid ItemsSource="{Binding Rules}" SelectedItem="{Binding SelectedRule}" IsReadOnly="False" CanUserSortColumns="False" RowHeight="32">
+            <DataGrid.Columns>
+              <DataGridTemplateColumn Header="Aktiv" Width="55">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="rules:SkipRule">
+                    <CheckBox IsChecked="{Binding Enabled}" HorizontalAlignment="Center" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="Muster" Width="*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="rules:SkipRule">
+                    <TextBox Text="{Binding Pattern}" BorderThickness="0" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="Regex" Width="60">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="rules:SkipRule">
+                    <CheckBox IsChecked="{Binding IsRegex}" HorizontalAlignment="Center" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="Für" Width="130">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="rules:SkipRule">
+                    <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.RuleTargets}" SelectedItem="{Binding Target}" HorizontalAlignment="Stretch" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="Aktion" Width="120">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="rules:SkipRule">
+                    <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.RuleActions}" SelectedItem="{Binding Action}" HorizontalAlignment="Stretch" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="Priorität" Width="110">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="rules:SkipRule">
+                    <NumericUpDown Value="{Binding Priority}" Minimum="-1000" Maximum="1000" FormatString="0" Width="100" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+
+      <TabItem Header="Befehle">
+        <Grid ColumnDefinitions="220,8,*" Margin="8">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="6" Margin="0,6,0,0">
+              <Button Content="Neu" Command="{Binding AddCommandCommand}" />
+              <Button Content="Entfernen" Command="{Binding RemoveCommandCommand}" />
+            </StackPanel>
+            <ListBox ItemsSource="{Binding Commands}" SelectedItem="{Binding SelectedCommand}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="settings:CustomCommand">
+                  <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+          <StackPanel Grid.Column="2" Spacing="6" IsVisible="{Binding SelectedCommand, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <TextBlock Text="Name" />
+            <TextBox Text="{Binding SelectedCommand.Name}" />
+            <TextBlock Text="Befehle (einer pro Zeile)" />
+            <TextBox Text="{Binding SelectedCommand.Commands}" AcceptsReturn="True" Height="160" Classes="log" />
+            <CheckBox Content="Beim Ausführen nach Parameter %1 fragen" IsChecked="{Binding SelectedCommand.AskForParameter}" />
+            <TextBlock Classes="muted" TextWrapping="Wrap"
+                       Text="Platzhalter: %p = Pfad der Auswahl, %f = Dateiname, %d = aktuelles Verzeichnis, %s = Site-Name, %1 = abgefragter Parameter." />
+          </StackPanel>
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Planer">
+        <Grid ColumnDefinitions="260,8,*" Margin="8">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="6" Margin="0,6,0,0">
+              <Button Content="Neu" Command="{Binding AddScheduleCommand}" />
+              <Button Content="Entfernen" Command="{Binding RemoveScheduleCommand}" />
+            </StackPanel>
+            <ListBox ItemsSource="{Binding Schedules}" SelectedItem="{Binding SelectedSchedule}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ScheduleEntryViewModel">
+                  <TextBlock Text="{Binding Summary}" />
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+          <Grid Grid.Column="2" Classes="form" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                IsVisible="{Binding SelectedSchedule, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <TextBlock Grid.Row="0" Text="Name" />
+            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding SelectedSchedule.Name}" />
+            <TextBlock Grid.Row="1" Text="Aktiv" />
+            <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding SelectedSchedule.Enabled}" />
+            <TextBlock Grid.Row="2" Text="Aktion" />
+            <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.ScheduleActions}" SelectedItem="{Binding SelectedSchedule.Action}" />
+            <TextBlock Grid.Row="3" Text="Uhrzeit (HH:mm)" />
+            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding SelectedSchedule.TimeText}" Width="100" HorizontalAlignment="Left" />
+            <TextBlock Grid.Row="4" Text="Wochentage" />
+            <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Spacing="4">
+              <CheckBox Content="Mo" IsChecked="{Binding SelectedSchedule.Mon}" />
+              <CheckBox Content="Di" IsChecked="{Binding SelectedSchedule.Tue}" />
+              <CheckBox Content="Mi" IsChecked="{Binding SelectedSchedule.Wed}" />
+              <CheckBox Content="Do" IsChecked="{Binding SelectedSchedule.Thu}" />
+              <CheckBox Content="Fr" IsChecked="{Binding SelectedSchedule.Fri}" />
+              <CheckBox Content="Sa" IsChecked="{Binding SelectedSchedule.Sat}" />
+              <CheckBox Content="So" IsChecked="{Binding SelectedSchedule.Sun}" />
+            </StackPanel>
+            <TextBlock Grid.Row="5" Text="Datum (einmalig)" />
+            <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding SelectedSchedule.DateText}" PlaceholderText="yyyy-MM-dd, leer = heute/nächstes Mal" Width="220" HorizontalAlignment="Left" />
+            <TextBlock Grid.Row="6" Text="Queue-Datei" />
+            <DockPanel Grid.Row="6" Grid.Column="1">
+              <Button DockPanel.Dock="Right" Content="..." Command="{Binding PickScheduleQueueCommand}" Margin="6,0,0,0" />
+              <TextBox Text="{Binding SelectedSchedule.QueueFile}" PlaceholderText="optional, wird vor dem Start geladen" />
+            </DockPanel>
+          </Grid>
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Ident">
+        <Grid Classes="form" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="8">
+          <TextBlock Grid.Row="0" Text="Ident-Server" />
+          <CheckBox Grid.Row="0" Grid.Column="1" Content="Aktiviert" IsChecked="{Binding Settings.IdentEnabled}" />
+          <TextBlock Grid.Row="1" Text="Port" />
+          <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding Settings.IdentPort}" Minimum="1" Maximum="65535" FormatString="0" />
+          <TextBlock Grid.Row="2" Text="Benutzer" />
+          <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Settings.IdentUser}" />
+          <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Classes="muted" TextWrapping="Wrap" Margin="0,10,0,0"
+                     Text="Unter Linux braucht Port 113 Root-Rechte. Alternativen: 'sudo setcap cap_net_bind_service=+ep' auf die Programmdatei oder eine Portweiterleitung von 113 auf einen hohen Port." />
+        </Grid>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
+</Window>

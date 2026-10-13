@@ -62,7 +62,7 @@ public sealed class FtpControlConnection : IAsyncDisposable
         }
         _socket = socket;
         _stream = new NetworkStream(socket, ownsSocket: true);
-        WriteLog(FtpLogKind.Info, $"Verbunden mit {socket.RemoteEndPoint}");
+        WriteLog(FtpLogKind.Info, $"Verbunden mit {RemoteEndPoint}");
     }
 
     /// <summary>Wraps the current stream in TLS (AUTH TLS or implicit FTPS).</summary>

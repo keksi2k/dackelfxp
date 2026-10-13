@@ -20,11 +20,11 @@ public sealed class FakeFtpServer : IAsyncDisposable
     private readonly CancellationTokenSource _cts = new();
     private readonly Task _acceptLoop;
 
-    public FakeFtpServer(bool tls = false, bool implicitTls = false)
+    public FakeFtpServer(bool tls = false, bool implicitTls = false, int port = 0)
     {
         Tls = tls || implicitTls;
         ImplicitTls = implicitTls;
-        _listener = new TcpListener(IPAddress.Loopback, 0);
+        _listener = new TcpListener(IPAddress.Loopback, port);
         _listener.Start();
         _acceptLoop = AcceptLoopAsync();
     }

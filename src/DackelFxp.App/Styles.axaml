@@ -1,0 +1,45 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <StreamGeometry x:Key="FolderIcon">M2,5 C2,4.4 2.4,4 3,4 L9,4 L11,6 L21,6 C21.6,6 22,6.4 22,7 L22,19 C22,19.6 21.6,20 21,20 L3,20 C2.4,20 2,19.6 2,19 Z</StreamGeometry>
+    <StreamGeometry x:Key="FileIcon">M6,2 L14,2 L20,8 L20,22 L6,22 Z M14,2 L14,8 L20,8</StreamGeometry>
+    <StreamGeometry x:Key="LinkIcon">M10,14 L14,10 M8,16 C6,18 3,15 5,13 L8,10 M16,8 C18,6 21,9 19,11 L16,14</StreamGeometry>
+    <StreamGeometry x:Key="DriveIcon">M2,8 L22,8 L22,18 L2,18 Z M17,13 L19,13</StreamGeometry>
+  </Styles.Resources>
+
+  <Style Selector="DataGrid">
+    <Setter Property="GridLinesVisibility" Value="None" />
+    <Setter Property="CanUserResizeColumns" Value="True" />
+    <Setter Property="CanUserSortColumns" Value="True" />
+    <Setter Property="IsReadOnly" Value="True" />
+    <Setter Property="RowHeight" Value="22" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="DataGridColumnHeader">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="MinHeight" Value="24" />
+  </Style>
+  <Style Selector="TabControl > TabItem">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="MinHeight" Value="30" />
+    <Setter Property="Padding" Value="10,2" />
+  </Style>
+  <Style Selector="TextBlock.log">
+    <Setter Property="FontFamily" Value="Cascadia Mono,Consolas,DejaVu Sans Mono,Liberation Mono,monospace" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="TextBlock.muted">
+    <Setter Property="Opacity" Value="0.7" />
+  </Style>
+  <Style Selector="Border.pane-header">
+    <Setter Property="Padding" Value="4" />
+    <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
+  </Style>
+  <Style Selector="Border.pane-header.active">
+    <Setter Property="Background" Value="{DynamicResource SystemControlHighlightListAccentLowBrush}" />
+  </Style>
+  <Style Selector="Label.form">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="0,0,8,0" />
+  </Style>
+</Styles>
