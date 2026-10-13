@@ -86,7 +86,7 @@ public sealed class DialogService
                 IsReadOnly = true,
                 AcceptsReturn = true,
                 TextWrapping = TextWrapping.NoWrap,
-                FontFamily = new FontFamily("Cascadia Mono,Consolas,DejaVu Sans Mono,monospace"),
+                FontFamily = new FontFamily("Consolas,DejaVu Sans Mono,Liberation Mono,Menlo,monospace"),
                 Margin = new Thickness(8),
             },
         };

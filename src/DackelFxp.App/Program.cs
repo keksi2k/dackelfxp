@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Media;
 
 namespace DackelFxp.App;
 
@@ -28,6 +29,15 @@ internal static class Program
 
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App>()
         .UsePlatformDetect()
-        .WithInterFont()
+        // Default font for everything (menus, popups, dialogs); fallbacks for systems without Consolas.
+        .With(new FontManagerOptions
+        {
+            DefaultFamilyName = "Consolas",
+            FontFallbacks =
+            [
+                new FontFallback { FontFamily = new Avalonia.Media.FontFamily("DejaVu Sans Mono") },
+                new FontFallback { FontFamily = new Avalonia.Media.FontFamily("Liberation Mono") },
+            ],
+        })
         .LogToTrace(Avalonia.Logging.LogEventLevel.Warning);
 }

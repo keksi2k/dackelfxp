@@ -1,91 +1,93 @@
 # DackelFXP
 
-FTP/FTPS/FXP-Client in C# / .NET 10 mit Avalonia-Oberfläche – läuft auf Windows und Linux (getestet: Windows 11, Ubuntu 24.04).
-Vorbild ist FlashFXP: zwei Browser-Seiten, Site-Manager, Queue und Site-zu-Site-Transfers inklusive Secure FXP.
+**English** | [Deutsch](README.de.md)
 
-## Funktionen
+FTP/FTPS/FXP client in C# / .NET 10 with an Avalonia UI – runs on Windows and Linux (tested: Windows 11, Ubuntu 24.04).
+Modeled after FlashFXP: two browser panes, site manager, transfer queue and site-to-site transfers including secure FXP.
 
-- **Protokolle:** FTP, FTPS explizit (`AUTH TLS`) und implizit (Port 990), `PROT P/C`, `CCC`, TLS 1.2/1.3
-  - Automatischer Wechsel auf TLS 1.2, wenn der Server Session-Reuse auf der Datenverbindung verlangt (z. B. vsftpd `require_ssl_reuse`)
-  - Zertifikatsprüfung mit Dialog, Fingerprint pro Site speicherbar
-- **FXP:** Site-zu-Site, **Secure FXP per SSCN (PASV- oder PORT-Seite) und CPSV**, `PRET` (drftpd), Resume per `REST`, Fallback auf die andere PASV-Richtung. Die funktionierende Variante wird pro Site-Paar gemerkt.
-- **Datenverbindung:** PASV, EPSV, PORT, EPRT, Port-Bereich und externe IP für aktiven Modus, NAT-Korrektur bei privaten PASV-Adressen
-- **Listing:** MLSD, `LIST -al`, `STAT -l`; Parser für Unix (inkl. glftpd/drftpd), Windows/IIS und MLSD; Zeitzone und Zeichensatz pro Site
-- **Queue:** Download, Upload und FXP, Ordner werden rekursiv aufgelöst, mehrere parallele Slots, Retry mit Pause, Speedlimit (global und pro Site), Speichern und Laden, Pausieren, Umsortieren
-- **Datei existiert:** eigene Regel für Ziel kleiner, gleich groß oder größer (Fortsetzen, Überspringen, Überschreiben, Umbenennen, Nachfragen)
-- **Skiplisten / Prioritäten:** Wildcard und Regex, z. B. `.sfv`/`.nfo` zuerst, `Sample` zuletzt
-- **Werkzeuge:** Ordnervergleich mit Markierung, „Unterschiede in Queue", SFV-Prüfung (CRC32), Benutzerbefehle mit Platzhaltern (`%p %f %d %s %1`), Raw-Befehle, CHMOD, Anzeigen/Bearbeiten mit automatischem Upload nach dem Speichern, Planer (Queue zeitgesteuert starten/stoppen), Ident-Server
-- **Sicherheit:** Passwörter AES-GCM-verschlüsselt, optional mit Master-Passwort (PBKDF2)
-- **Oberfläche:** Drag & Drop zwischen den Seiten und aus dem Dateimanager, Lesezeichen, Filter, farbiges Protokoll pro Verbindung, helles/dunkles Design, Deutsch/Englisch (live umschaltbar unter *Werkzeuge → Sprache*)
-- **Befehlszeile** unter dem Log: Raw- und eigene Befehle an die Site der linken oder rechten Seite, Antworten erscheinen im Log (Verlauf mit ↑/↓)
+## Features
 
-## Tastenkürzel
+- **Protocols:** FTP, FTPS explicit (`AUTH TLS`) and implicit (port 990), `PROT P/C`, `CCC`, TLS 1.2/1.3
+  - Automatic fallback to TLS 1.2 when the server requires session reuse on data connections (e.g. vsftpd `require_ssl_reuse`)
+  - Certificate check with a dialog; fingerprints can be trusted per site
+- **FXP:** site to site, **secure FXP via SSCN (PASV or PORT side) and CPSV**, `PRET` (drftpd), resume via `REST`, fallback to the opposite PASV direction. The working variant is remembered per site pair.
+- **Data connections:** PASV, EPSV, PORT, EPRT, port range and external IP for active mode, NAT correction for private PASV addresses
+- **Listings:** MLSD, `LIST -al`, `STAT -l`; parsers for Unix (incl. glftpd/drftpd), Windows/IIS and MLSD; time zone and character set per site
+- **Queue:** download, upload and FXP, folders are expanded recursively, several parallel slots, retries with delay, speed limits (global and per site), save and load, pause, reorder
+- **File exists:** separate rules for a smaller, equal or larger target (resume, skip, overwrite, rename, ask)
+- **Skiplists / priorities:** wildcards and regex, e.g. `.sfv`/`.nfo` first, `Sample` last
+- **Tools:** folder comparison with highlighting, "queue differences", SFV check (CRC32), custom commands with placeholders (`%p %f %d %s %1`), raw commands, CHMOD, view/edit with automatic upload after saving, scheduler (start/stop the queue at set times), ident server
+- **Command line** below the log: raw and custom commands to the site of the left or right pane; replies appear in the log (history with ↑/↓)
+- **Security:** passwords encrypted with AES-GCM, optionally protected by a master password (PBKDF2)
+- **UI:** drag & drop between panes and from the system file manager, bookmarks, filter, colored protocol log per connection, dark/light theme, Consolas font throughout, German/English (switchable live under *Tools → Language*)
 
-| Taste | Aktion |
+## Keyboard shortcuts
+
+| Key | Action |
 |---|---|
-| F4 / F8 | Site-Manager / Schnellverbindung |
-| Enter, Backspace | Öffnen, eine Ebene höher |
-| Ctrl+T / Ctrl+Q | Übertragen / in die Queue |
-| F2, F3, F5, F7, Entf | Umbenennen, Anzeigen/Bearbeiten, Aktualisieren, Neuer Ordner, Löschen |
-| Ctrl+L | Pfadzeile |
-| Ctrl+M | Ordner vergleichen |
-| Ctrl+K | Befehlszeile |
-| F9 / Shift+F9 | Queue starten / stoppen |
+| F4 / F8 | Site manager / quick connect |
+| Enter, Backspace | Open, go up one level |
+| Ctrl+T / Ctrl+Q | Transfer / add to queue |
+| F2, F3, F5, F7, Del | Rename, view/edit, refresh, new folder, delete |
+| Ctrl+L | Path bar |
+| Ctrl+M | Compare folders |
+| Ctrl+K | Command line |
+| F9 / Shift+F9 | Start / stop queue |
 
-## Bauen und starten
+## Build and run
 
 ```bash
 dotnet build
 dotnet run --project src/DackelFxp.App
 ```
 
-Programmoptionen:
+Command line options:
 
-- `--config <ordner>` (oder Umgebungsvariable `DACKELFXP_CONFIG`): eigener Konfigurationsordner, z. B. für eine portable Installation
-- `--left <site>` / `--right <site>`: beim Start mit einer Site verbinden
+- `--config <folder>` (or environment variable `DACKELFXP_CONFIG`): separate configuration folder, e.g. for a portable installation
+- `--left <site>` / `--right <site>`: connect to a site on startup
 
-Standard-Konfiguration: `%APPDATA%\DackelFxp` (Windows) bzw. `~/.config/dackelfxp` (Linux).
+Default configuration folder: `%APPDATA%\DackelFxp` (Windows) or `~/.config/dackelfxp` (Linux).
 
-### Veröffentlichen (Single-File, ohne installierte .NET-Runtime)
+### Publish (single file, no .NET runtime required)
 
 ```bash
 dotnet publish src/DackelFxp.App -p:PublishProfile=win-x64     # -> artifacts/win-x64/DackelFxp.exe
 dotnet publish src/DackelFxp.App -p:PublishProfile=linux-x64   # -> artifacts/linux-x64/DackelFxp
 ```
 
-Unter Ubuntu werden die üblichen X11-Bibliotheken benötigt (`libx11-6 libice6 libsm6 libfontconfig1`), auf einem Desktop-System sind sie vorhanden.
+On Ubuntu the usual X11 libraries are required (`libx11-6 libice6 libsm6 libfontconfig1`); they are present on any desktop system. Consolas is usually not installed on Linux; the UI then falls back to DejaVu Sans Mono or Liberation Mono.
 
 ## Tests
 
 ```bash
-dotnet test                       # Unit-Tests inkl. In-Process-FTP-Server (TLS, SSCN, CPSV, PRET)
+dotnet test                       # unit tests incl. an in-process FTP server (TLS, SSCN, CPSV, PRET)
 ```
 
-Integrationstests auf Ubuntu gegen zwei echte vsftpd-Server (FTPS mit `require_ssl_reuse`, FXP, Resume):
+Integration tests on Ubuntu against two real vsftpd servers (FTPS with `require_ssl_reuse`, FXP, resume):
 
 ```bash
 docker compose -f tests/DackelFxp.IntegrationTests/docker/docker-compose.yml up --build --abort-on-container-exit --exit-code-from tests
 ```
 
-Zum manuellen Ausprobieren der Oberfläche gibt es zwei Test-Server (FTP auf Port 2121, FTPS auf Port 2122):
+For trying out the UI manually there are two test servers (FTP on port 2121, FTPS on port 2122):
 
 ```bash
 dotnet run --project tools/DackelFxp.DevServer
 ```
 
-## Projektstruktur
+## Project structure
 
 ```
-src/DackelFxp.Ftp     Protokoll-Stack (FtpClient, FxpTransfer, Listing-Parser) – ohne UI-Abhängigkeiten
-src/DackelFxp.Core    Sites, Verschlüsselung, Connection-Pool, Queue/Transfer-Engine, Regeln, Planer, Tools
-src/DackelFxp.App     Avalonia-GUI (MVVM)
-tests/                Unit- und Integrationstests
-tools/                Dev-FTP-Server
+src/DackelFxp.Ftp     Protocol stack (FtpClient, FxpTransfer, listing parsers) – no UI dependencies
+src/DackelFxp.Core    Sites, encryption, connection pool, queue/transfer engine, rules, scheduler, tools
+src/DackelFxp.App     Avalonia UI (MVVM)
+tests/                Unit and integration tests
+tools/                Dev FTP server
 ```
 
-## Bekannte Grenzen
+## Known limitations
 
-- Kein SFTP und keine Proxy-/Bouncer-Unterstützung
-- Secure FXP (SSCN/CPSV) ist gegen den eingebauten Test-Server geprüft, aber nicht gegen echte glftpd/drftpd/ioFTPD-Server
-- FXP-Transfers zeigen keinen Byte-Fortschritt, nur die Laufzeit (die Daten fließen direkt zwischen den Servern)
-- Kein Import von FlashFXP-Sites (`Sites.dat`)
+- No SFTP and no proxy/bouncer support
+- Secure FXP (SSCN/CPSV) is tested against the built-in test server, but not against real glftpd/drftpd/ioFTPD servers
+- FXP transfers show no byte progress, only the elapsed time (the data flows directly between the servers)
+- No import of FlashFXP sites (`Sites.dat`)

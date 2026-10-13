@@ -13,6 +13,8 @@
           <SolidColorBrush x:Key="AreaHeaderBrush" Color="#F3F3F3" />
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
+      <!-- Whole UI in Consolas; on Linux it falls back to DejaVu Sans Mono / Liberation Mono. The Fluent theme reads this key. -->
+      <FontFamily x:Key="ContentControlThemeFontFamily">Consolas,DejaVu Sans Mono,Liberation Mono,Menlo,monospace</FontFamily>
       <DataTemplate x:Key="EnumTemplate" x:DataType="x:Object">
         <TextBlock Text="{Binding Converter={x:Static conv:EnumText.Instance}}" />
       </DataTemplate>
@@ -22,6 +24,10 @@
       <StreamGeometry x:Key="DriveIcon">M2,8 L22,8 L22,18 L2,18 Z M17,13 L19,13</StreamGeometry>
     </ResourceDictionary>
   </Styles.Resources>
+
+  <Style Selector="Window">
+    <Setter Property="FontFamily" Value="{DynamicResource ContentControlThemeFontFamily}" />
+  </Style>
 
   <!-- Fine 1px frame around each area (panes, queue/log, dialogs). -->
   <Style Selector="Border.area">
@@ -94,11 +100,11 @@
     <Setter Property="Padding" Value="10,2" />
   </Style>
   <Style Selector="TextBlock.log">
-    <Setter Property="FontFamily" Value="Cascadia Mono,Consolas,DejaVu Sans Mono,Liberation Mono,monospace" />
+    <Setter Property="FontFamily" Value="Consolas,DejaVu Sans Mono,Liberation Mono,Menlo,monospace" />
     <Setter Property="FontSize" Value="12" />
   </Style>
   <Style Selector="TextBox.log">
-    <Setter Property="FontFamily" Value="Cascadia Mono,Consolas,DejaVu Sans Mono,Liberation Mono,monospace" />
+    <Setter Property="FontFamily" Value="Consolas,DejaVu Sans Mono,Liberation Mono,Menlo,monospace" />
   </Style>
   <Style Selector="TextBlock.muted">
     <Setter Property="Opacity" Value="0.7" />
