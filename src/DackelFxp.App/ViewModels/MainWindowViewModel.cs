@@ -73,6 +73,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             return;
         }
 
+        FileEntryViewModel.SortLinksOnTop = _services.Settings.Current.SortLinksOnTop;
         var lastLocal = _services.Settings.Current.LastLocalPath;
         await Left.InitializeLocalAsync(lastLocal);
         await Right.InitializeLocalAsync(lastLocal);
@@ -212,6 +213,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private Task ConnectSiteAsync(Site site) => ActivePane.ConnectAsync(site);
 
+    private void ApplySortSettings()
+    {
+        FileEntryViewModel.SortLinksOnTop = _services.Settings.Current.SortLinksOnTop;
+        Left.Resort();
+        Right.Resort();
+    }
+
     [RelayCommand]
     private void FocusCommandLine()
     {
@@ -246,6 +254,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Left.NotifySitesChanged();
         Right.NotifySitesChanged();
         CommandBar.RefreshCustomCommands();
+        ApplySortSettings();
         Lang.Code = _services.Settings.Current.Language;
     }
 

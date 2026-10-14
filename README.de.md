@@ -18,7 +18,7 @@ Vorbild ist FlashFXP: zwei Browser-Seiten, Site-Manager, Queue und Site-zu-Site-
 - **Skiplisten / Prioritäten:** Wildcard und Regex, z. B. `.sfv`/`.nfo` zuerst, `Sample` zuletzt
 - **Werkzeuge:** Ordnervergleich mit Markierung, „Unterschiede in Queue", SFV-Prüfung (CRC32), Benutzerbefehle mit Platzhaltern (`%p %f %d %s %1`), Raw-Befehle, CHMOD, Anzeigen/Bearbeiten mit automatischem Upload nach dem Speichern, Planer (Queue zeitgesteuert starten/stoppen), Ident-Server
 - **Sicherheit:** Passwörter AES-GCM-verschlüsselt, optional mit Master-Passwort (PBKDF2)
-- **Oberfläche:** Drag & Drop zwischen den Seiten und aus dem Dateimanager, Lesezeichen, Filter, farbiges Protokoll pro Verbindung, helles/dunkles Design, durchgehend Consolas-Schrift, Deutsch/Englisch (live umschaltbar unter *Werkzeuge → Sprache*)
+- **Oberfläche:** Drag & Drop zwischen den Seiten und aus dem Dateimanager, Lesezeichen, Filter, farbiges Protokoll pro Verbindung, helles/dunkles Design, einstellbare Schriftart (Standard Consolas) und Listen-Schriftgröße, optional Links oben sortieren, Deutsch/Englisch (live umschaltbar unter *Werkzeuge → Sprache*)
 - **Befehlszeile** unter dem Log: Raw- und eigene Befehle an die Site der linken oder rechten Seite, Antworten erscheinen im Log (Verlauf mit ↑/↓)
 
 ## Tastenkürzel
@@ -33,6 +33,9 @@ Vorbild ist FlashFXP: zwei Browser-Seiten, Site-Manager, Queue und Site-zu-Site-
 | Ctrl+M | Ordner vergleichen |
 | Ctrl+K | Befehlszeile |
 | F9 / Shift+F9 | Queue starten / stoppen |
+| Mittlere Maustaste | Einen Ordner höher |
+| Maus-Zurück-Taste | Vorheriger Ordner |
+| Drag & Drop | Zwischen den Seiten: Download, Upload oder FXP |
 
 ## Bauen und starten
 
@@ -61,6 +64,7 @@ Unter Ubuntu werden die üblichen X11-Bibliotheken benötigt (`libx11-6 libice6 
 
 ```bash
 dotnet test                       # Unit-Tests inkl. In-Process-FTP-Server (TLS, SSCN, CPSV, PRET)
+                                  # und Headless-UI-Tests (Drag & Drop, Maustasten)
 ```
 
 Integrationstests auf Ubuntu gegen zwei echte vsftpd-Server (FTPS mit `require_ssl_reuse`, FXP, Resume):

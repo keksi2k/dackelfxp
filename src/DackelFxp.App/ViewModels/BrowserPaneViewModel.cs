@@ -163,7 +163,7 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
     public async Task OpenAsync(FileEntryViewModel? entry)
     {
         if (entry is null) return;
-        if (entry.IsDirectory)
+        if (entry.IsDirectory || (entry.IsLink && IsRemote))
         {
             await NavigateAsync(entry.IsDrive ? entry.Name : Browser.Combine(CurrentPath, entry.Name));
             return;
@@ -204,6 +204,9 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
         ApplyFilter();
     }
 
+    /// <summary>Re-sorts the current listing (e.g. after "sort links on top" changed).</summary>
+    public void Resort() => ApplyFilter();
+
     private void ApplyFilter()
     {
         Items.Clear();
@@ -211,7 +214,7 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
         var rule = filter.Length == 0 ? null : new Core.Rules.SkipRule { Pattern = filter.Contains('*') || filter.Contains('?') ? filter : $"*{filter}*" };
         foreach (var item in _all
                      .Where(e => rule is null || e.IsDirectory || rule.Matches(e.Name, false))
-                     .OrderByDescending(e => e.IsDirectory)
+                     .OrderBy(e => e.SortGroup)
                      .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase))
             Items.Add(item);
         UpdateStatus();

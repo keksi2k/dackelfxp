@@ -14,7 +14,7 @@ namespace DackelFxp.App;
 
 public partial class App : Application
 {
-    public static AppServices Services { get; private set; } = null!;
+    public static AppServices Services { get; internal set; } = null!;
 
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
@@ -27,6 +27,7 @@ public partial class App : Application
             Services = new AppServices();
             ApplyTheme(Services.Settings.Current.Theme);
             ApplyLanguage();
+            ApplyFont(Services.Settings.Current.FontFamily, Services.Settings.Current.ListFontSize);
 
             var window = new MainWindow();
             Services.Dialogs.Owner = window;
@@ -41,6 +42,18 @@ public partial class App : Application
     }
 
     private static ResourceDictionary? _texts;
+
+    /// <summary>Applies the configured font to the whole UI and the list font size; fallbacks keep Linux readable.</summary>
+    public static void ApplyFont(string family, double listSize)
+    {
+        if (Current is null) return;
+        var name = string.IsNullOrWhiteSpace(family) ? "Consolas" : family.Trim();
+        Current.Resources["ContentControlThemeFontFamily"] =
+            new Avalonia.Media.FontFamily($"{name},Consolas,DejaVu Sans Mono,Liberation Mono,monospace");
+        var size = Math.Clamp(listSize, 8, 32);
+        Current.Resources["ListFontSize"] = size;
+        Current.Resources["ListRowHeight"] = Math.Round(size + 10);
+    }
 
     /// <summary>Publishes the UI texts of the current language as resources (XAML uses DynamicResource, so it updates live).</summary>
     public static void ApplyLanguage()

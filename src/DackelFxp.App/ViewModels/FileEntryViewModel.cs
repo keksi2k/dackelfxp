@@ -18,10 +18,18 @@ public sealed partial class FileEntryViewModel(BrowserEntry entry, bool isDrive 
     public string ModifiedText => Entry.Modified?.ToString("yyyy-MM-dd HH:mm") ?? "";
     public string Permissions => Entry.Permissions ?? "";
     public string Owner => string.Join("/", new[] { Entry.Owner, Entry.Group }.Where(s => !string.IsNullOrEmpty(s)));
-    /// <summary>Sort key keeping directories on top.</summary>
-    public string SortName => (IsDirectory ? "0" : "1") + Name;
+    /// <summary>Setting "sort links on top" (applies to all panes).</summary>
+    public static bool SortLinksOnTop { get; set; }
 
-    public string IconKey => IsDrive ? "DriveIcon" : Entry.IsLink ? "LinkIcon" : IsDirectory ? "FolderIcon" : "FileIcon";
+    public bool IsLink => Entry.IsLink;
+
+    /// <summary>Group for sorting: links (if enabled), then directories, then files.</summary>
+    public int SortGroup => SortLinksOnTop && IsLink ? 0 : IsDirectory ? 1 : 2;
+
+    /// <summary>Sort key for the name column, keeping the groups together.</summary>
+    public string SortName => SortGroup + Name;
+
+    public string IconKey => IsDrive ? "DriveIcon" : IsDirectory || IsLink ? "FolderIcon" : "FileIcon";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsCompareOnly), nameof(IsCompareDifferent), nameof(IsCompareSame))]
@@ -32,5 +40,6 @@ public sealed partial class FileEntryViewModel(BrowserEntry entry, bool isDrive 
     public bool IsCompareDifferent => Compare is CompareStatus.Different or CompareStatus.Newer or CompareStatus.Older;
     public bool IsCompareSame => Compare is CompareStatus.Same;
 
-    public IBrush IconBrush => IsDirectory ? Brushes.Goldenrod : Brushes.SteelBlue;
+    /// <summary>Links: cyan folder; folders: gold; files: blue.</summary>
+    public IBrush IconBrush => IsLink ? Brushes.DarkTurquoise : IsDirectory ? Brushes.Goldenrod : Brushes.SteelBlue;
 }

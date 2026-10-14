@@ -30,7 +30,7 @@
     <TabControl TabStripPlacement="Left">
       <TabItem Header="{DynamicResource Tab_General}">
         <ScrollViewer>
-          <Grid Classes="form" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="8">
+          <Grid Classes="form" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="8">
             <TextBlock Grid.Row="0" Text="{DynamicResource Set_Slots}" />
             <NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding Settings.TransferSlots}" Minimum="1" Maximum="20" FormatString="0" />
             <TextBlock Grid.Row="1" Text="{DynamicResource Set_GlobalLimit}" />
@@ -48,7 +48,19 @@
               <CheckBox Content="{DynamicResource Set_FilesFirst}" IsChecked="{Binding Settings.TransferFilesBeforeFolders}" />
               <CheckBox Content="{DynamicResource Set_PreserveTime}" IsChecked="{Binding Settings.PreserveTimestamps}" />
               <CheckBox Content="{DynamicResource Set_VerifySfv}" IsChecked="{Binding Settings.VerifySfvAfterDownload}" />
+              <CheckBox Content="{DynamicResource Set_SortLinks}" IsChecked="{Binding Settings.SortLinksOnTop}" />
             </StackPanel>
+                      <TextBlock Grid.Row="7" Text="{DynamicResource Set_Font}" />
+            <ComboBox Grid.Row="7" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.FontNames}" SelectedItem="{Binding Settings.FontFamily}"
+                      MinWidth="260" MaxDropDownHeight="400">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <TextBlock Text="{Binding}" FontFamily="{Binding}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Grid.Row="8" Text="{DynamicResource Set_ListFontSize}" />
+            <NumericUpDown Grid.Row="8" Grid.Column="1" Value="{Binding Settings.ListFontSize}" Minimum="8" Maximum="32" Increment="1" FormatString="0" />
           </Grid>
         </ScrollViewer>
       </TabItem>

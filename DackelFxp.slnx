@@ -5,6 +5,7 @@
     <Project Path="src/DackelFxp.Ftp/DackelFxp.Ftp.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/DackelFxp.App.Tests/DackelFxp.App.Tests.csproj" />
     <Project Path="tests/DackelFxp.Core.Tests/DackelFxp.Core.Tests.csproj" />
     <Project Path="tests/DackelFxp.Ftp.Tests/DackelFxp.Ftp.Tests.csproj" />
     <Project Path="tests/DackelFxp.IntegrationTests/DackelFxp.IntegrationTests.csproj" />

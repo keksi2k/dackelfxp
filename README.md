@@ -19,7 +19,7 @@ Modeled after FlashFXP: two browser panes, site manager, transfer queue and site
 - **Tools:** folder comparison with highlighting, "queue differences", SFV check (CRC32), custom commands with placeholders (`%p %f %d %s %1`), raw commands, CHMOD, view/edit with automatic upload after saving, scheduler (start/stop the queue at set times), ident server
 - **Command line** below the log: raw and custom commands to the site of the left or right pane; replies appear in the log (history with ↑/↓)
 - **Security:** passwords encrypted with AES-GCM, optionally protected by a master password (PBKDF2)
-- **UI:** drag & drop between panes and from the system file manager, bookmarks, filter, colored protocol log per connection, dark/light theme, Consolas font throughout, German/English (switchable live under *Tools → Language*)
+- **UI:** drag & drop between panes and from the system file manager, bookmarks, filter, colored protocol log per connection, dark/light theme, configurable font (default Consolas) and list font size, optional "sort all links on top", German/English (switchable live under *Tools → Language*)
 
 ## Keyboard shortcuts
 
@@ -33,6 +33,9 @@ Modeled after FlashFXP: two browser panes, site manager, transfer queue and site
 | Ctrl+M | Compare folders |
 | Ctrl+K | Command line |
 | F9 / Shift+F9 | Start / stop queue |
+| Middle mouse button | One folder up |
+| Mouse "back" button | Previous folder |
+| Drag & drop | Between the panes: download, upload or FXP |
 
 ## Build and run
 
@@ -61,6 +64,7 @@ On Ubuntu the usual X11 libraries are required (`libx11-6 libice6 libsm6 libfont
 
 ```bash
 dotnet test                       # unit tests incl. an in-process FTP server (TLS, SSCN, CPSV, PRET)
+                                  # and headless UI tests (drag & drop, mouse buttons)
 ```
 
 Integration tests on Ubuntu against two real vsftpd servers (FTPS with `require_ssl_reuse`, FXP, resume):

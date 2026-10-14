@@ -74,6 +74,12 @@ public sealed class AppSettings
     public string IdentUser { get; set; } = "dackel";
 
     public string Theme { get; set; } = "Dark";
+    /// <summary>Font for the whole UI.</summary>
+    public string FontFamily { get; set; } = "Consolas";
+    /// <summary>Font size of file lists, queue and log.</summary>
+    public double ListFontSize { get; set; } = 12;
+    /// <summary>Show symbolic links above folders and files.</summary>
+    public bool SortLinksOnTop { get; set; }
     /// <summary>"de" or "en"; empty = German.</summary>
     public string Language { get; set; } = "";
     public string LastLocalPath { get; set; } = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);

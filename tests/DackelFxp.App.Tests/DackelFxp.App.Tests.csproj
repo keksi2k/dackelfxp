@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- UI tests: the real main window in Avalonia's headless platform, driven with simulated mouse input. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Avalonia.Headless.XUnit 12.1 is built against xunit.v3 3.x -->
+    <PackageReference Include="xunit.v3" VersionOverride="3.2.2" />
+    <PackageReference Include="Avalonia.Headless.XUnit" />
+    <PackageReference Include="Avalonia.Skia" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DackelFxp.App\DackelFxp.App.csproj" />
+    <Compile Include="..\DackelFxp.Ftp.Tests\FakeFtpServer.cs" Link="FakeFtpServer.cs" />
+  </ItemGroup>
+</Project>

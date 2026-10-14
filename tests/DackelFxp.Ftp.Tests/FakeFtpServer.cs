@@ -43,6 +43,8 @@ public sealed class FakeFtpServer : IAsyncDisposable
 
     public ConcurrentDictionary<string, byte[]> Files { get; } = new();
     public ConcurrentDictionary<string, bool> Directories { get; } = new(new Dictionary<string, bool> { ["/"] = true });
+    /// <summary>Symbolic links: path -> target (listed as links, CWD follows them).</summary>
+    public ConcurrentDictionary<string, string> Links { get; } = new();
     public ConcurrentQueue<string> ReceivedCommands { get; } = new();
     public ConcurrentQueue<Exception> Errors { get; } = new();
 
@@ -214,6 +216,7 @@ public sealed class FakeFtpServer : IAsyncDisposable
                 case "CWD":
                 {
                     var target = Resolve(arg);
+                    if (server.Links.TryGetValue(target, out var linkTarget)) target = linkTarget;
                     if (!server.Directories.ContainsKey(target)) { await ReplyAsync("550 No such directory", ct); break; }
                     _cwd = target;
                     await ReplyAsync("250 CWD ok", ct);
@@ -360,6 +363,8 @@ public sealed class FakeFtpServer : IAsyncDisposable
                         var sb = new StringBuilder();
                         foreach (var dir in server.Directories.Keys.Where(d => d != path && ParentOf(d) == path))
                             sb.Append(verb == "MLSD" ? $"type=dir;modify=20260101120000; {Name(dir)}\r\n" : $"drwxr-xr-x   2 user group 0 Jan  1  2026 {Name(dir)}\r\n");
+                        foreach (var (link, linkTarget) in server.Links.Where(l => ParentOf(l.Key) == path))
+                            sb.Append(verb == "MLSD" ? $"type=OS.unix=symlink;modify=20260101120000; {Name(link)}\r\n" : $"lrwxrwxrwx   1 user group 10 Jan  1  2026 {Name(link)} -> {linkTarget}\r\n");
                         foreach (var (file, content) in server.Files.Where(f => ParentOf(f.Key) == path))
                             sb.Append(verb == "MLSD" ? $"type=file;size={content.Length};modify=20260101120000; {Name(file)}\r\n" : $"-rw-r--r--   1 user group {content.Length} Jan  1  2026 {Name(file)}\r\n");
                         await data.WriteAsync(Encoding.UTF8.GetBytes(sb.ToString()), ct);

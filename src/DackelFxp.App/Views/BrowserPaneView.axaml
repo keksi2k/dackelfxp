@@ -22,6 +22,8 @@
     </Style>
   </UserControl.Styles>
 
+  <!-- Transparent background: the empty area below the rows also receives clicks (middle click = up). -->
+  <Panel Background="Transparent">
   <DockPanel>
     <Border DockPanel.Dock="Top" Classes="pane-header line-bottom" Classes.active="{Binding IsActive}">
       <StackPanel Spacing="4">
@@ -74,7 +76,7 @@
       <TextBlock Text="{Binding StatusText}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
     </Border>
 
-    <DataGrid x:Name="Grid" ItemsSource="{Binding Items}" SelectionMode="Extended" DragDrop.AllowDrop="True">
+    <DataGrid x:Name="Grid" ItemsSource="{Binding Items}" SelectionMode="Extended" DragDrop.AllowDrop="True" Background="Transparent">
       <DataGrid.ContextMenu>
         <ContextMenu>
           <MenuItem Header="{DynamicResource Ctx_Transfer}" InputGesture="Ctrl+T" Command="{Binding TransferSelectedCommand}" />
@@ -159,4 +161,12 @@
       </DataGrid.Columns>
     </DataGrid>
   </DockPanel>
+    <!-- Shown while entries from the other pane are dragged over this one. -->
+    <Border x:Name="DropOverlay" IsVisible="False" IsHitTestVisible="False"
+            BorderBrush="{DynamicResource SystemAccentColor}" BorderThickness="2">
+      <Border.Background>
+        <SolidColorBrush Color="{DynamicResource SystemAccentColor}" Opacity="0.12" />
+      </Border.Background>
+    </Border>
+  </Panel>
 </UserControl>

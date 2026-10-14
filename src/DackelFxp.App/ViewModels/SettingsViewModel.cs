@@ -82,6 +82,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     public static string[] Themes { get; } = ["Dark", "Light", "System"];
     public static string[] Languages { get; } = ["de", "en"];
 
+    /// <summary>Installed font families for the font selection.</summary>
+    public static IReadOnlyList<string> FontNames { get; } =
+        [.. Avalonia.Media.FontManager.Current.SystemFonts.Select(f => f.Name).Distinct().Order(StringComparer.OrdinalIgnoreCase)];
+
     public ObservableCollection<SkipList> SkipLists { get; }
 
     [ObservableProperty]
@@ -195,6 +199,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _services.Connections.ApplySpeedLimits();
         _services.ApplyIdent();
         App.ApplyTheme(Settings.Theme);
+        App.ApplyFont(Settings.FontFamily, Settings.ListFontSize);
         Close?.Invoke();
     }
 
