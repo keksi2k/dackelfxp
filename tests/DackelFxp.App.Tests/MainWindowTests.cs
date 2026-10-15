@@ -188,6 +188,17 @@ public class MainWindowTests
     }
 
     [AvaloniaFact]
+    public async Task Windows_Have_The_Program_Icon()
+    {
+        await using var ui = await UiFixture.CreateAsync();
+        Assert.NotNull(ui.Window.Icon);
+        var settings = new DackelFxp.App.Views.Dialogs.SettingsWindow { DataContext = new SettingsViewModel(ui.Services) };
+        settings.Show();
+        Assert.NotNull(settings.Icon);
+        settings.Close();
+    }
+
+    [AvaloniaFact]
     public async Task Middle_Click_Goes_Up_One_Folder()
     {
         await using var ui = await UiFixture.CreateAsync();

@@ -1,3 +1,5 @@
+<img src="tools/icon/dackelfxp-1024.png" alt="DackelFXP" width="128" align="right">
+
 # DackelFXP
 
 **English** | [Deutsch](README.de.md)

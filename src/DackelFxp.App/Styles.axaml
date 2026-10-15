@@ -28,6 +28,11 @@
     </ResourceDictionary>
   </Styles.Resources>
 
+  <!-- Program icon for every window (title bar, taskbar, Alt+Tab). -->
+  <Style Selector="Window">
+    <Setter Property="Icon" Value="avares://DackelFxp/Assets/dackelfxp.png" />
+  </Style>
+
   <!-- Windows and popups (menus, context menus) use the configured font. -->
   <Style Selector=":is(TopLevel)">
     <Setter Property="FontFamily" Value="{DynamicResource ContentControlThemeFontFamily}" />
