@@ -59,6 +59,8 @@ public sealed class AppSettings
     public bool VerifySfvAfterDownload { get; set; }
     public int IdleDisconnectMinutes { get; set; } = 10;
     public CompletionAction OnQueueComplete { get; set; } = CompletionAction.None;
+    /// <summary>Remove successfully finished items from the queue automatically.</summary>
+    public bool RemoveFinishedItems { get; set; }
 
     public string DefaultSkipList { get; set; } = "Standard";
     public List<SkipList> SkipLists { get; set; } = [SkipList.CreateDefault()];

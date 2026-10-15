@@ -40,6 +40,21 @@ public sealed class FakeFtpServer : IAsyncDisposable
     public bool RequireProtP { get; set; }
     /// <summary>Refuse PORT (e.g. FXP disabled for this direction).</summary>
     public bool RefusePort { get; set; }
+    /// <summary>Delay per RETR to make transfers overlap (concurrency tests).</summary>
+    public TimeSpan RetrDelay { get; set; }
+    private int _activeRetr;
+    private int _maxActiveRetr;
+    /// <summary>Highest number of RETR transfers that ran at the same time.</summary>
+    public int MaxConcurrentRetr => Volatile.Read(ref _maxActiveRetr);
+
+    internal void EnterRetr()
+    {
+        var now = Interlocked.Increment(ref _activeRetr);
+        int max;
+        while (now > (max = Volatile.Read(ref _maxActiveRetr)) && Interlocked.CompareExchange(ref _maxActiveRetr, now, max) != max) { }
+    }
+
+    internal void LeaveRetr() => Interlocked.Decrement(ref _activeRetr);
 
     public ConcurrentDictionary<string, byte[]> Files { get; } = new();
     public ConcurrentDictionary<string, bool> Directories { get; } = new(new Dictionary<string, bool> { ["/"] = true });
@@ -371,7 +386,16 @@ public sealed class FakeFtpServer : IAsyncDisposable
                         break;
                     case "RETR":
                         var bytes = server.Files[path];
-                        await data.WriteAsync(bytes.AsMemory((int)Math.Min(_rest, bytes.Length)), ct);
+                        server.EnterRetr();
+                        try
+                        {
+                            if (server.RetrDelay > TimeSpan.Zero) await Task.Delay(server.RetrDelay, ct);
+                            await data.WriteAsync(bytes.AsMemory((int)Math.Min(_rest, bytes.Length)), ct);
+                        }
+                        finally
+                        {
+                            server.LeaveRetr();
+                        }
                         break;
                     case "STOR":
                         using (var ms = new MemoryStream())

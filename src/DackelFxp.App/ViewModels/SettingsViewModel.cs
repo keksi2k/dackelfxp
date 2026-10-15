@@ -200,6 +200,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _services.ApplyIdent();
         App.ApplyTheme(Settings.Theme);
         App.ApplyFont(Settings.FontFamily, Settings.ListFontSize);
+        _services.Engine.ApplySlotCount();
         Close?.Invoke();
     }
 

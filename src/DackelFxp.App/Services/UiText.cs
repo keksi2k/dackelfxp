@@ -122,6 +122,8 @@ public static class UiText
         ["Set_SortLinks"] = ("Links (Symlinks) oben sortieren", "Sort all links on top"),
         ["Set_Font"] = ("Schriftart", "Font"),
         ["Set_ListFontSize"] = ("Schriftgröße (Listen, Log)", "Font size (lists, log)"),
+        ["Queue_AutoRemove"] = ("Fertige automatisch entfernen", "Remove finished automatically"),
+        ["Set_SlotsHint"] = ("Pro Site zusätzlich begrenzt durch „Max. Verbindungen“ im Site-Manager", "Per site also limited by \"Max. connections\" in the site manager"),
         ["Set_Theme"] = ("Design", "Theme"),
         ["Set_VerifySfv"] = ("Downloads gegen .sfv prüfen (CRC32)", "Verify downloads against .sfv (CRC32)"),
         ["Site_Ccc"] = ("Steuerkanal nach Login unverschlüsseln (CCC)", "Clear control channel after login (CCC)"),

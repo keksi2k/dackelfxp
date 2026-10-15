@@ -44,6 +44,23 @@ public sealed partial class QueueViewModel : ObservableObject
     public IList<QueueItem> Selection { get; set; } = [];
 
     [ObservableProperty] public partial bool IsRunning { get; private set; }
+
+    /// <summary>Remove finished transfers automatically (persisted setting).</summary>
+    public bool RemoveFinishedAutomatically
+    {
+        get => _services.Settings.Current.RemoveFinishedItems;
+        set
+        {
+            if (_services.Settings.Current.RemoveFinishedItems == value) return;
+            _services.Settings.Current.RemoveFinishedItems = value;
+            _services.Settings.Save();
+            OnPropertyChanged();
+            if (value) _queue.Remove(Items.Where(i => i.Status == QueueStatus.Done).ToList());
+        }
+    }
+
+    /// <summary>Settings dialog changed values: update bindings.</summary>
+    public void RefreshSettings() => OnPropertyChanged(nameof(RemoveFinishedAutomatically));
     [ObservableProperty] public partial string Summary { get; private set; } = "";
     [ObservableProperty] public partial string TotalSpeed { get; private set; } = "";
 

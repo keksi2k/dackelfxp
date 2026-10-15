@@ -15,6 +15,7 @@
       <Button Content="⤓" Command="{Binding MoveBottomCommand}" ToolTip.Tip="{DynamicResource Queue_Bottom}" />
       <Button Content="{DynamicResource Btn_Remove}" Command="{Binding RemoveSelectedCommand}" />
       <Button Content="{DynamicResource Menu_RemoveFinished}" Command="{Binding RemoveFinishedCommand}" />
+      <CheckBox Content="{DynamicResource Queue_AutoRemove}" IsChecked="{Binding RemoveFinishedAutomatically}" Margin="8,0,0,0" />
     </StackPanel>
     <DataGrid x:Name="Grid" ItemsSource="{Binding Items}" SelectionMode="Extended" CanUserSortColumns="False">
       <DataGrid.ContextMenu>

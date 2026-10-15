@@ -73,6 +73,13 @@ public sealed class ConnectionManager : IAsyncDisposable
 
     public int ConnectionCount(Guid siteId) => _pools.TryGetValue(siteId, out var p) ? p.OpenCount : 0;
 
+    /// <summary>
+    /// How many connections to <paramref name="site"/> are free right now. The engine only starts items
+    /// whose connections are available, so the queue does not show "running" items that merely wait.
+    /// </summary>
+    public int FreeConnections(Site site) =>
+        _pools.TryGetValue(site.Id, out var pool) ? pool.FreeSlots(site) : Math.Max(1, site.MaxConnections);
+
     public BandwidthLimiter GetLimiter(Site site) =>
         _pools.GetOrAdd(site.Id, _ => new SitePool(this, site)).Limiter;
 
@@ -173,7 +180,7 @@ public sealed class ConnectionManager : IAsyncDisposable
     internal sealed class SitePool
     {
         private readonly ConnectionManager _owner;
-        private readonly SemaphoreSlim _slots;
+        private readonly ConnectionSlots _slots;
         private readonly ConcurrentBag<(FtpClient Client, int Number)> _idle = [];
         private readonly ConcurrentDictionary<FtpClient, int> _all = new();
         private int _counter;
@@ -182,7 +189,7 @@ public sealed class ConnectionManager : IAsyncDisposable
         {
             _owner = owner;
             Site = site;
-            _slots = new SemaphoreSlim(Math.Max(1, site.MaxConnections));
+            _slots = new ConnectionSlots(Math.Max(1, site.MaxConnections));
             Limiter = new BandwidthLimiter(site.SpeedLimitKb * 1024L, owner.GlobalLimiter);
         }
 
@@ -190,10 +197,15 @@ public sealed class ConnectionManager : IAsyncDisposable
         public BandwidthLimiter Limiter { get; }
         public int OpenCount => _all.Count;
 
+        /// <summary>Connections that could be rented right now without waiting (using the site's current limit).</summary>
+        public int FreeSlots(Site site) => Math.Max(1, site.MaxConnections) - _slots.InUse;
+
         public async Task<PooledConnection> RentAsync(Site site, CancellationToken ct)
         {
             Site = site;
-            await _slots.WaitAsync(ct).ConfigureAwait(false);
+            // The limit may have been changed in the site manager since the pool was created.
+            _slots.Capacity = Math.Max(1, site.MaxConnections);
+            await _slots.AcquireAsync(ct).ConfigureAwait(false);
             try
             {
                 while (_idle.TryTake(out var idle))
@@ -279,6 +291,83 @@ public sealed class ConnectionManager : IAsyncDisposable
         {
             if (_all.TryRemove(client, out _)) _owner.ConnectionsChanged?.Invoke(Site);
             await client.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+}
+
+/// <summary>Counting gate like SemaphoreSlim, but the capacity can be changed at runtime.</summary>
+internal sealed class ConnectionSlots(int capacity)
+{
+    private readonly Lock _lock = new();
+    private readonly LinkedList<TaskCompletionSource> _waiters = new();
+    private int _capacity = capacity;
+    private int _inUse;
+
+    public int InUse
+    {
+        get { lock (_lock) return _inUse; }
+    }
+
+    public int Capacity
+    {
+        get { lock (_lock) return _capacity; }
+        set
+        {
+            lock (_lock)
+            {
+                _capacity = value;
+                GrantWaiters();
+            }
+        }
+    }
+
+    public Task AcquireAsync(CancellationToken ct)
+    {
+        TaskCompletionSource tcs;
+        LinkedListNode<TaskCompletionSource> node;
+        lock (_lock)
+        {
+            if (_inUse < _capacity)
+            {
+                _inUse++;
+                return Task.CompletedTask;
+            }
+            tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            node = _waiters.AddLast(tcs);
+        }
+        if (ct.CanBeCanceled)
+        {
+            var registration = ct.Register(() =>
+            {
+                lock (_lock)
+                {
+                    // Only cancel if not granted in the meantime (then the slot belongs to the caller).
+                    if (node.List is null) return;
+                    _waiters.Remove(node);
+                }
+                tcs.TrySetCanceled(ct);
+            });
+            _ = tcs.Task.ContinueWith(_ => registration.Dispose(), TaskScheduler.Default);
+        }
+        return tcs.Task;
+    }
+
+    public void Release()
+    {
+        lock (_lock)
+        {
+            _inUse--;
+            GrantWaiters();
+        }
+    }
+
+    private void GrantWaiters()
+    {
+        while (_inUse < _capacity && _waiters.First is { } first)
+        {
+            _waiters.RemoveFirst();
+            _inUse++;
+            first.Value.TrySetResult();
         }
     }
 }

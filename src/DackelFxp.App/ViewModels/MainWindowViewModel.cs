@@ -254,6 +254,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Left.NotifySitesChanged();
         Right.NotifySitesChanged();
         CommandBar.RefreshCustomCommands();
+        Queue.RefreshSettings();
         ApplySortSettings();
         Lang.Code = _services.Settings.Current.Language;
     }

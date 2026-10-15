@@ -29,7 +29,9 @@ public sealed class TransferEngine : IAsyncDisposable
     private readonly ConcurrentDictionary<(Guid, Guid), (FxpStrategy Strategy, bool SourcePassive)> _fxpCache = new();
     private readonly SemaphoreSlim _signal = new(0);
     private CancellationTokenSource? _stopCts;
-    private Task[] _workers = [];
+    private readonly List<Task> _workers = [];
+    private readonly Lock _workerLock = new();
+    private int _workerCount;
     private int _busyWorkers;
 
     public TransferEngine(TransferQueue queue, ConnectionManager connections, SiteStore sites, SettingsStore settings)
@@ -53,10 +55,41 @@ public sealed class TransferEngine : IAsyncDisposable
     {
         if (_stopCts is not null) return;
         _stopCts = new CancellationTokenSource();
-        var slots = Math.Max(1, _settings.Current.TransferSlots);
-        var token = _stopCts.Token;
-        _workers = Enumerable.Range(0, slots).Select(_ => Task.Run(() => WorkerAsync(token))).ToArray();
+        ApplySlotCount();
         RunningChanged?.Invoke(true);
+    }
+
+    private int DesiredSlots => Math.Max(1, _settings.Current.TransferSlots);
+
+    /// <summary>
+    /// Adapts the number of parallel workers to the "parallel transfers" setting, also while the queue runs:
+    /// missing workers are started, surplus workers end after their current item.
+    /// </summary>
+    public void ApplySlotCount()
+    {
+        if (_stopCts is not { } cts) return;
+        lock (_workerLock)
+        {
+            _workers.RemoveAll(t => t.IsCompleted);
+            while (_workerCount < DesiredSlots)
+            {
+                _workerCount++;
+                var token = cts.Token;
+                _workers.Add(Task.Run(() => WorkerAsync(token)));
+            }
+        }
+        Wake();
+    }
+
+    /// <summary>A worker ends if there are more workers than configured slots.</summary>
+    private bool TryRetireWorker()
+    {
+        lock (_workerLock)
+        {
+            if (_workerCount <= DesiredSlots) return false;
+            _workerCount--;
+            return true;
+        }
     }
 
     public async Task StopAsync()
@@ -66,9 +99,15 @@ public sealed class TransferEngine : IAsyncDisposable
         _stopCts = null;
         cts.Cancel();
         foreach (var running in _running.Values) running.Cancel();
-        try { await Task.WhenAll(_workers).ConfigureAwait(false); } catch (OperationCanceledException) { }
+        Task[] workers;
+        lock (_workerLock) workers = [.. _workers];
+        try { await Task.WhenAll(workers).ConfigureAwait(false); } catch (OperationCanceledException) { }
         cts.Dispose();
-        _workers = [];
+        lock (_workerLock)
+        {
+            _workers.Clear();
+            _workerCount = 0;
+        }
         RunningChanged?.Invoke(false);
     }
 
@@ -87,7 +126,8 @@ public sealed class TransferEngine : IAsyncDisposable
     {
         while (!stop.IsCancellationRequested)
         {
-            var item = _queue.TakeNext();
+            if (TryRetireWorker()) return;
+            var item = _queue.TakeNext(HasFreeConnections);
             if (item is null)
             {
                 if (Volatile.Read(ref _busyWorkers) == 0 && !_queue.HasPendingWork())
@@ -146,6 +186,7 @@ public sealed class TransferEngine : IAsyncDisposable
             item.Speed = 0;
             item.Status = skipped is null ? QueueStatus.Done : QueueStatus.Skipped;
             if (skipped is not null) item.Error = skipped;
+            else if (_settings.Current.RemoveFinishedItems) _queue.Remove([item]);
         }
         catch (OperationCanceledException)
         {
@@ -183,6 +224,21 @@ public sealed class TransferEngine : IAsyncDisposable
         }
         item.NotBefore = DateTimeOffset.Now.AddSeconds(site?.RetryDelaySeconds ?? 10);
         item.Status = QueueStatus.Pending;
+    }
+
+    /// <summary>
+    /// Only start items whose connections are free right now. Otherwise the item would be shown as running
+    /// while it just waits for a connection, and items of other sites could not move ahead.
+    /// </summary>
+    private bool HasFreeConnections(QueueItem item)
+    {
+        var source = ResolveSite(item.Source);
+        var target = ResolveSite(item.Target);
+        if (source is not null && target is not null && source.Id == target.Id)
+            // With a limit below 2 this can never work: let the item start and fail with a clear message.
+            return source.MaxConnections < 2 || _connections.FreeConnections(source) >= 2;
+        return (source is null || _connections.FreeConnections(source) >= 1)
+               && (target is null || _connections.FreeConnections(target) >= 1);
     }
 
     private Site? ResolveSite(TransferEndpoint endpoint) => endpoint.SiteId is { } id ? _sites.Find(id) : null;

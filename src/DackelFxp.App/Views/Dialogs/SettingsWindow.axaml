@@ -32,7 +32,10 @@
         <ScrollViewer>
           <Grid Classes="form" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="8">
             <TextBlock Grid.Row="0" Text="{DynamicResource Set_Slots}" />
-            <NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding Settings.TransferSlots}" Minimum="1" Maximum="20" FormatString="0" />
+            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="10">
+              <NumericUpDown Value="{Binding Settings.TransferSlots}" Minimum="1" Maximum="20" FormatString="0" />
+              <TextBlock Text="{DynamicResource Set_SlotsHint}" Classes="muted" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="380" />
+            </StackPanel>
             <TextBlock Grid.Row="1" Text="{DynamicResource Set_GlobalLimit}" />
             <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding Settings.GlobalSpeedLimitKb}" Minimum="0" Maximum="10000000" FormatString="0" />
             <TextBlock Grid.Row="2" Text="{DynamicResource Set_IdleDisconnect}" />
@@ -49,6 +52,7 @@
               <CheckBox Content="{DynamicResource Set_PreserveTime}" IsChecked="{Binding Settings.PreserveTimestamps}" />
               <CheckBox Content="{DynamicResource Set_VerifySfv}" IsChecked="{Binding Settings.VerifySfvAfterDownload}" />
               <CheckBox Content="{DynamicResource Set_SortLinks}" IsChecked="{Binding Settings.SortLinksOnTop}" />
+              <CheckBox Content="{DynamicResource Queue_AutoRemove}" IsChecked="{Binding Settings.RemoveFinishedItems}" />
             </StackPanel>
                       <TextBlock Grid.Row="7" Text="{DynamicResource Set_Font}" />
             <ComboBox Grid.Row="7" Grid.Column="1" ItemsSource="{x:Static vm:SettingsViewModel.FontNames}" SelectedItem="{Binding Settings.FontFamily}"

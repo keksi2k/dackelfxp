@@ -229,4 +229,99 @@ public sealed class EngineTests : IAsyncLifetime
         other.Load(file);
         Assert.Equal(_queue.Snapshot().Select(i => i.Source.Path), other.Snapshot().Select(i => i.Source.Path));
     }
+
+    private List<QueueItem> SlowDownloads(FakeFtpServer server, Site site, int count)
+    {
+        server.RetrDelay = TimeSpan.FromMilliseconds(400);
+        var items = new List<QueueItem>();
+        for (var i = 0; i < count; i++)
+        {
+            server.Files[$"/f{i}.bin"] = new byte[100];
+            items.Add(new QueueItem { Kind = TransferKind.Download, Source = Remote(site, $"/f{i}.bin"), Target = Local(Path.Combine(_root, "par", $"f{i}.bin")) });
+        }
+        return items;
+    }
+
+    [Fact]
+    public async Task Runs_As_Many_Transfers_In_Parallel_As_Configured()
+    {
+        await using var server = new FakeFtpServer();
+        var site = AddSite(server, "src");
+        site.MaxConnections = 8;
+        _settings.Current.TransferSlots = 4;
+        _queue.Add(SlowDownloads(server, site, 8));
+        await RunQueueAsync();
+        Assert.Equal(4, server.MaxConcurrentRetr);
+    }
+
+    [Fact]
+    public async Task Site_Connection_Limit_Caps_Parallel_Transfers()
+    {
+        await using var server = new FakeFtpServer();
+        var site = AddSite(server, "src");
+        site.MaxConnections = 2;
+        _settings.Current.TransferSlots = 5;
+        _queue.Add(SlowDownloads(server, site, 6));
+        await RunQueueAsync();
+        Assert.Equal(2, server.MaxConcurrentRetr);
+    }
+
+    [Fact]
+    public async Task Raised_Site_Limit_Applies_Without_Reconnect()
+    {
+        await using var server = new FakeFtpServer();
+        var site = AddSite(server, "src");
+        site.MaxConnections = 1;
+        // The pool is created with the old limit ...
+        await using (await _connections.RentAsync(site, Ct)) { }
+        // ... then the user raises it in the site manager (the store gets a new Site object).
+        var edited = site.Clone();
+        edited.MaxConnections = 4;
+        _sites.AddOrUpdate(edited);
+        _settings.Current.TransferSlots = 4;
+        _queue.Add(SlowDownloads(server, edited, 8));
+        await RunQueueAsync();
+        Assert.Equal(4, server.MaxConcurrentRetr);
+    }
+
+    [Fact]
+    public async Task Changing_Slots_While_Running_Takes_Effect()
+    {
+        await using var server = new FakeFtpServer();
+        var site = AddSite(server, "src");
+        site.MaxConnections = 8;
+        _settings.Current.TransferSlots = 1;
+        _queue.Add(SlowDownloads(server, site, 10));
+        var done = new TaskCompletionSource();
+        _engine.QueueCompleted += () => done.TrySetResult();
+        _engine.Start();
+        await Task.Delay(200, Ct);
+        _settings.Current.TransferSlots = 3;
+        _engine.ApplySlotCount();
+        await done.Task.WaitAsync(TimeSpan.FromSeconds(30), Ct);
+        Assert.Equal(3, server.MaxConcurrentRetr);
+    }
+
+    [Fact]
+    public async Task Finished_Items_Are_Removed_When_Enabled()
+    {
+        await using var server = new FakeFtpServer();
+        server.Files["/ok.bin"] = [1];
+        server.Directories["/dir"] = true;
+        server.Files["/dir/x.bin"] = [2];
+        var site = AddSite(server, "src");
+        _settings.Current.RemoveFinishedItems = true;
+        _queue.Add(
+        [
+            new QueueItem { Kind = TransferKind.Download, Source = Remote(site, "/ok.bin"), Target = Local(Path.Combine(_root, "rm", "ok.bin")) },
+            new QueueItem { Kind = TransferKind.Download, IsDirectory = true, Source = Remote(site, "/dir"), Target = Local(Path.Combine(_root, "rm", "dir")) },
+            new QueueItem { Kind = TransferKind.Download, Source = Remote(site, "/missing"), Target = Local(Path.Combine(_root, "rm", "missing")) },
+        ]);
+        await RunQueueAsync();
+
+        // Only the failed transfer stays visible.
+        var left = Assert.Single(_queue.Snapshot());
+        Assert.Equal("missing", left.Name);
+        Assert.True(File.Exists(Path.Combine(_root, "rm", "dir", "x.bin")));
+    }
 }
