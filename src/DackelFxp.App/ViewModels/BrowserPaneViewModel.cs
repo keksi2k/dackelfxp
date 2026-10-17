@@ -66,7 +66,11 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
 
     public ObservableCollection<FileEntryViewModel> Items { get; } = [];
     public IReadOnlyList<FileEntryViewModel> AllEntries => _all;
-    public IList<FileEntryViewModel> Selection { get; set; } = [];
+    /// <summary>Set by the view: reads the current selection directly from the list control.</summary>
+    public Func<IReadOnlyList<FileEntryViewModel>>? SelectionSource { get; set; }
+
+    /// <summary>Selected entries (always the live state of the list, never a stale copy).</summary>
+    public IReadOnlyList<FileEntryViewModel> Selection => SelectionSource?.Invoke() ?? [];
 
     public IReadOnlyList<Site> Sites => _services.Sites.Sites.OrderBy(s => s.Group).ThenBy(s => s.Name).ToList();
     public IReadOnlyList<CustomCommand> CustomCommands =>

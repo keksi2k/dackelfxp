@@ -17,14 +17,16 @@ public partial class BrowserPaneView : UserControl
     private bool _dragging;
     private IReadOnlyList<FileEntryViewModel> _dragEntries = [];
     private BrowserPaneView? _hoverTarget;
+    /// <summary>Row pressed inside a multi selection: selected alone only if the press ends without a drag.</summary>
+    private FileEntryViewModel? _deferredSelect;
 
     public BrowserPaneView()
     {
         InitializeComponent();
 
-        Grid.SelectionChanged += (_, _) =>
+        DataContextChanged += (_, _) =>
         {
-            if (Vm is { } vm) vm.Selection = Grid.SelectedItems.OfType<FileEntryViewModel>().ToList();
+            if (Vm is { } vm) vm.SelectionSource = () => Grid.SelectedItems.OfType<FileEntryViewModel>().ToList();
         };
         Grid.DoubleTapped += async (_, e) =>
         {
@@ -105,9 +107,20 @@ public partial class BrowserPaneView : UserControl
         }
 
         // Left button on a file row: a drag may start.
-        _pressed = props.IsLeftButtonPressed
-                   && e.Source is Visual v && v.FindAncestorOfType<DataGridRow>(includeSelf: true) is not null;
-        if (_pressed) _pressPoint = e.GetPosition(this);
+        var row = (e.Source as Visual)?.FindAncestorOfType<DataGridRow>(includeSelf: true);
+        _pressed = props.IsLeftButtonPressed && row is not null;
+        _deferredSelect = null;
+        if (!_pressed) return;
+        _pressPoint = e.GetPosition(this);
+
+        // Pressing an entry of a multi selection must keep the selection (like a file manager),
+        // otherwise only that one entry would be dragged. The DataGrid would collapse it right here.
+        if (row!.DataContext is FileEntryViewModel entry && e.KeyModifiers == KeyModifiers.None
+            && vm.Selection.Count > 1 && vm.Selection.Contains(entry))
+        {
+            _deferredSelect = entry;
+            e.Handled = true;
+        }
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
@@ -142,7 +155,25 @@ public partial class BrowserPaneView : UserControl
     private async void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         _pressed = false;
-        if (!_dragging) return;
+        if (!_dragging)
+        {
+            // Plain click (no drag) on an entry of a multi selection: now select only that entry.
+            if (_deferredSelect is { } single)
+            {
+                // After the DataGrid has processed the release itself.
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    // Not "SelectedItem = single": it may already be the SelectedItem, then nothing would change.
+                    // The list may have been reloaded meanwhile (e.g. after a double-click).
+                    if (Vm?.Items.Contains(single) != true) return;
+                    Grid.SelectedItems.Clear();
+                    Grid.SelectedItems.Add(single);
+                });
+                _deferredSelect = null;
+            }
+            return;
+        }
+        _deferredSelect = null;
         var target = PaneAt(e);
         var entries = _dragEntries;
         EndDrag();

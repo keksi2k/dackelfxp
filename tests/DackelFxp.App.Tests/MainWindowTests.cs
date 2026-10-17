@@ -148,6 +148,51 @@ public class MainWindowTests
         Assert.Equal(2000, new FileInfo(Path.Combine(ui.LocalDir, "Release-GRP", "a.rar")).Length);
     }
 
+    /// <summary>Click a row, then Ctrl+click further rows (multi selection like in a file manager).</summary>
+    private static void SelectRows(UiFixture ui, bool left, params string[] names)
+    {
+        for (var i = 0; i < names.Length; i++)
+        {
+            var p = ui.RowPoint(left, names[i]);
+            var mods = i == 0 ? RawInputModifiers.None : RawInputModifiers.Control;
+            ui.Window.MouseDown(p, MouseButton.Left, mods);
+            ui.Window.MouseUp(p, MouseButton.Left, mods);
+            Dispatcher.UIThread.RunJobs();
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task Dragging_A_Multi_Selection_Queues_All_Selected_Items()
+    {
+        await using var ui = await UiFixture.CreateAsync();
+        SelectRows(ui, left: true, "Release-GRP", "b.nfo");
+        Assert.Equal(2, ui.Vm.Left.Selection.Count);
+
+        // Drag starts on the first selected row (pressing it must not collapse the selection).
+        ui.Drag(ui.RowPoint(left: true, "Release-GRP"), ui.PaneCenter(left: false));
+
+        var top = ui.Services.Queue.Snapshot().Where(i => i.ParentId is null).Select(i => i.Name).Order(StringComparer.Ordinal).ToList();
+        Assert.Equal(["Release-GRP", "b.nfo"], top);
+        await UiFixture.WaitUntilAsync(() => File.Exists(Path.Combine(ui.LocalDir, "b.nfo")) && File.Exists(Path.Combine(ui.LocalDir, "Release-GRP", "a.rar")));
+    }
+
+    [AvaloniaFact]
+    public async Task Click_Without_Drag_On_Selected_Row_Selects_Only_That_Row()
+    {
+        await using var ui = await UiFixture.CreateAsync();
+        SelectRows(ui, left: true, "Release-GRP", "b.nfo");
+        // Click the other row than the last one (two quick clicks on the same row would be a double-click).
+        var p = ui.RowPoint(left: true, "Release-GRP");
+        ui.Window.MouseDown(p, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+        // Pressing keeps the multi selection (a drag could follow) ...
+        Assert.Equal(2, ui.Vm.Left.Selection.Count);
+        ui.Window.MouseUp(p, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+        // ... releasing without a drag selects only the clicked entry.
+        Assert.Equal(["Release-GRP"], ui.Vm.Left.Selection.Select(e => e.Name));
+    }
+
     [AvaloniaFact]
     public async Task Drag_Local_File_To_Remote_Pane_Uploads_It()
     {
