@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:DackelFxp.App.ViewModels"
+        xmlns:conv="using:DackelFxp.App.Converters"
         xmlns:rules="using:DackelFxp.Core.Rules"
         xmlns:settings="using:DackelFxp.Core.Settings"
         x:Class="DackelFxp.App.Views.Dialogs.SettingsWindow"
@@ -59,7 +60,7 @@
                       MinWidth="260" MaxDropDownHeight="400">
               <ComboBox.ItemTemplate>
                 <DataTemplate x:DataType="x:String">
-                  <TextBlock Text="{Binding}" FontFamily="{Binding}" />
+                  <TextBlock Text="{Binding}" FontFamily="{Binding Converter={x:Static conv:Formats.FontPreviewConverter}}" />
                 </DataTemplate>
               </ComboBox.ItemTemplate>
             </ComboBox>

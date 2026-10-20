@@ -47,12 +47,17 @@ public partial class App : Application
     public static void ApplyFont(string family, double listSize)
     {
         if (Current is null) return;
-        var name = string.IsNullOrWhiteSpace(family) ? "Consolas" : family.Trim();
-        Current.Resources["ContentControlThemeFontFamily"] =
-            new Avalonia.Media.FontFamily($"{name},Consolas,DejaVu Sans Mono,Liberation Mono,monospace");
+        Current.Resources["ContentControlThemeFontFamily"] = FontWithFallbacks(family);
         var size = Math.Clamp(listSize, 8, 32);
         Current.Resources["ListFontSize"] = size;
         Current.Resources["ListRowHeight"] = Math.Round(size + 10);
+    }
+
+    /// <summary>Font family with monospace fallbacks, so a font missing on this system (e.g. Consolas on Linux) never fails.</summary>
+    public static Avalonia.Media.FontFamily FontWithFallbacks(string? family)
+    {
+        var name = string.IsNullOrWhiteSpace(family) ? "Consolas" : family.Trim();
+        return new Avalonia.Media.FontFamily($"{name},Consolas,DejaVu Sans Mono,Liberation Mono,Menlo,monospace");
     }
 
     /// <summary>Publishes the UI texts of the current language as resources (XAML uses DynamicResource, so it updates live).</summary>

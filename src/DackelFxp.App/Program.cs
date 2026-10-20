@@ -29,10 +29,11 @@ internal static class Program
 
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App>()
         .UsePlatformDetect()
-        // Default font for everything (menus, popups, dialogs); fallbacks for systems without Consolas.
+        // Default font for everything (menus, popups, dialogs). It must exist on the system, otherwise
+        // Avalonia throws as soon as a text falls back to it, hence one per platform.
         .With(new FontManagerOptions
         {
-            DefaultFamilyName = "Consolas",
+            DefaultFamilyName = OperatingSystem.IsWindows() ? "Consolas" : OperatingSystem.IsMacOS() ? "Menlo" : "DejaVu Sans Mono",
             FontFallbacks =
             [
                 new FontFallback { FontFamily = new Avalonia.Media.FontFamily("DejaVu Sans Mono") },

@@ -27,6 +27,7 @@ public static class Formats
 
     public static readonly IValueConverter BytesConverter = new FuncValueConverter<long, string>(Bytes);
     public static readonly IValueConverter SpeedConverter = new FuncValueConverter<double, string>(Speed);
+    public static readonly IValueConverter FontPreviewConverter = new FuncValueConverter<string, FontFamily>(App.FontWithFallbacks);
 
     public static readonly IValueConverter KindConverter = new FuncValueConverter<TransferKind, string>(k => k switch
     {
