@@ -55,6 +55,8 @@ Command line options:
 
 Default configuration folder: `%APPDATA%\DackelFxp` (Windows), `~/.config/dackelfxp` (Linux) or `~/Library/Application Support/dackelfxp` (macOS).
 
+**Portable mode:** if a folder `data` exists next to `DackelFxp.exe` (macOS: next to `DackelFXP.app`), settings, sites and queue are stored there – e.g. for a USB stick. Under *Settings → General → Storage location* you can switch to portable mode, to any other folder or back to the default; the data is copied and DackelFXP restarts. `--config <folder>` (or the environment variable `DACKELFXP_CONFIG`) overrides everything.
+
 ### Publish (single file, no .NET runtime required)
 
 ```bash

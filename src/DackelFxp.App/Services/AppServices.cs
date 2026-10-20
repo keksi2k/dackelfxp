@@ -76,5 +76,21 @@ public sealed class AppServices
         var tasks = new List<Task> { Engine.StopAsync(), Connections.DisposeAsync().AsTask(), Scheduler.DisposeAsync().AsTask() };
         if (Ident is not null) tasks.Add(Ident.DisposeAsync().AsTask());
         Task.WaitAll(tasks.ToArray(), TimeSpan.FromSeconds(3));
+        if (PendingLocation is { } pending) ApplyLocationAndRestart(pending.Kind, pending.CustomRoot);
+    }
+
+    /// <summary>Set before closing the main window: on exit the configuration moves there and the program restarts.</summary>
+    public (ConfigLocationKind Kind, string? CustomRoot)? PendingLocation { get; set; }
+
+    private void ApplyLocationAndRestart(ConfigLocationKind kind, string? customRoot)
+    {
+        try { Paths.SwitchTo(kind, customRoot); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"DackelFXP: configuration could not be moved: {ex.Message}");
+        }
+        if (Environment.ProcessPath is not { } exe) return;
+        try { System.Diagnostics.Process.Start(exe, Program.Args); }
+        catch (System.ComponentModel.Win32Exception ex) { Console.Error.WriteLine($"DackelFXP: restart failed: {ex.Message}"); }
     }
 }

@@ -30,7 +30,7 @@
     <TabControl TabStripPlacement="Left">
       <TabItem Header="{DynamicResource Tab_General}">
         <ScrollViewer>
-          <Grid Classes="form" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="8">
+          <Grid Classes="form" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="8">
             <TextBlock Grid.Row="0" Text="{DynamicResource Set_Slots}" />
             <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="10">
               <NumericUpDown Value="{Binding Settings.TransferSlots}" Minimum="1" Maximum="20" FormatString="0" />
@@ -65,6 +65,17 @@
             </ComboBox>
             <TextBlock Grid.Row="8" Text="{DynamicResource Set_ListFontSize}" />
             <NumericUpDown Grid.Row="8" Grid.Column="1" Value="{Binding Settings.ListFontSize}" Minimum="8" Maximum="32" Increment="1" FormatString="0" />
+            <TextBlock Grid.Row="9" Text="{DynamicResource Set_ConfigFolder}" VerticalAlignment="Top" Margin="0,10,0,0" />
+            <StackPanel Grid.Row="9" Grid.Column="1" Spacing="4" Margin="0,10,0,0">
+              <SelectableTextBlock Text="{Binding ConfigFolder}" TextWrapping="Wrap" MaxWidth="520" HorizontalAlignment="Left" />
+              <TextBlock Text="{Binding ConfigLocationText}" Classes="muted" />
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Button Content="{DynamicResource Set_ConfigPortable}" ToolTip.Tip="{DynamicResource Set_ConfigPortableTip}" Command="{Binding MakePortableCommand}" IsEnabled="{Binding CanChangeConfigFolder}" />
+                <Button Content="{DynamicResource Set_ConfigChoose}" Command="{Binding ChooseConfigFolderCommand}" IsEnabled="{Binding CanChangeConfigFolder}" />
+                <Button Content="{DynamicResource Set_ConfigDefault}" Command="{Binding UseDefaultConfigFolderCommand}" IsEnabled="{Binding CanChangeConfigFolder}" />
+                <Button Content="{DynamicResource Set_ConfigOpen}" Command="{Binding OpenConfigFolderCommand}" />
+              </StackPanel>
+            </StackPanel>
           </Grid>
         </ScrollViewer>
       </TabItem>

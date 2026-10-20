@@ -55,6 +55,8 @@ Programmoptionen:
 
 Standard-Konfiguration: `%APPDATA%\DackelFxp` (Windows), `~/.config/dackelfxp` (Linux) bzw. `~/Library/Application Support/dackelfxp` (macOS).
 
+**Portabler Modus:** Gibt es neben `DackelFxp.exe` (macOS: neben `DackelFXP.app`) einen Ordner `data`, liegen Einstellungen, Sites und Queue dort – z. B. für einen USB-Stick. Unter *Einstellungen → Allgemein → Speicherort* lässt sich auf portabel, einen beliebigen Ordner oder zurück auf den Standard umstellen; die Daten werden kopiert und DackelFXP startet neu. `--config <ordner>` (bzw. die Umgebungsvariable `DACKELFXP_CONFIG`) hat immer Vorrang.
+
 ### Veröffentlichen (Single-File, ohne installierte .NET-Runtime)
 
 ```bash

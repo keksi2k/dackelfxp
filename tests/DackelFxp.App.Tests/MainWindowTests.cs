@@ -425,6 +425,23 @@ public class MainWindowTests
         pane.HeaderMenu.Close();
     }
 
+    [AvaloniaFact]
+    public async Task Settings_Show_The_Storage_Location_Locked_By_Command_Line()
+    {
+        await using var ui = await UiFixture.CreateAsync();
+        var vm = new SettingsViewModel(ui.Services);
+        Assert.Equal(Path.Combine(ui.Root, "config"), vm.ConfigFolder);
+        // DACKELFXP_CONFIG is set by the fixture: the folder cannot be changed in the UI.
+        Assert.False(vm.CanChangeConfigFolder);
+
+        var settings = new DackelFxp.App.Views.Dialogs.SettingsWindow { DataContext = vm };
+        settings.Show();
+        Dispatcher.UIThread.RunJobs();
+        var portable = settings.GetVisualDescendants().OfType<Button>().Single(b => b.Command == vm.MakePortableCommand);
+        Assert.False(portable.IsEffectivelyEnabled);
+        settings.Close();
+    }
+
     /// <summary>Renders screenshots for manual review; only runs with DACKELFXP_SHOTS=folder.</summary>
     [AvaloniaFact]
 #pragma warning disable CS0618 // Bitmap.Save(string): simple PNG output is enough here
