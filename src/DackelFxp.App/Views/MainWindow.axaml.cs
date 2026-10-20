@@ -27,6 +27,8 @@ public partial class MainWindow : Window
 
         Closing += (_, _) =>
         {
+            LeftPane.StoreColumnLayout();
+            RightPane.StoreColumnLayout();
             var s = App.Services.Settings.Current;
             s.WindowMaximized = WindowState == WindowState.Maximized;
             if (WindowState == WindowState.Normal)

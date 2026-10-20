@@ -38,6 +38,8 @@ Modeled after FlashFXP: two browser panes, site manager, transfer queue and site
 | Middle mouse button | One folder up |
 | Mouse "back" button | Previous folder |
 | Drag & drop | Between the panes: download, upload or FXP |
+| Typing in the list | Jumps to the first entry starting with the typed text (same letter again: next match) |
+| Right-click on a column header | Show/hide columns; drag a header to move the column |
 
 ## Build and run
 

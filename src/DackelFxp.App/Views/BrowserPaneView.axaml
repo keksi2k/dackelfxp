@@ -76,7 +76,7 @@
       <TextBlock Text="{Binding StatusText}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
     </Border>
 
-    <DataGrid x:Name="Grid" ItemsSource="{Binding Items}" SelectionMode="Extended" DragDrop.AllowDrop="True" Background="Transparent">
+    <DataGrid x:Name="Grid" ItemsSource="{Binding Items}" SelectionMode="Extended" CanUserReorderColumns="True" DragDrop.AllowDrop="True" Background="Transparent">
       <DataGrid.ContextMenu>
         <ContextMenu>
           <MenuItem Header="{DynamicResource Ctx_Transfer}" InputGesture="Ctrl+T" Command="{Binding TransferSelectedCommand}" />
@@ -103,8 +103,9 @@
           <MenuItem Header="{DynamicResource Ctx_Refresh}" InputGesture="F5" Command="{Binding RefreshCommand}" />
         </ContextMenu>
       </DataGrid.ContextMenu>
+      <!-- Tag = key of the column layout in the settings. Right-click on a header: show/hide columns. -->
       <DataGrid.Columns>
-        <DataGridTemplateColumn Width="*" SortMemberPath="SortName" MinWidth="120">
+        <DataGridTemplateColumn Tag="Name" Width="*" SortMemberPath="SortName" MinWidth="120">
           <DataGridTemplateColumn.Header>
             <TextBlock Text="{DynamicResource Col_Name}" />
           </DataGridTemplateColumn.Header>
@@ -118,7 +119,7 @@
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTemplateColumn Width="90" SortMemberPath="Size">
+        <DataGridTemplateColumn Tag="Size" Width="90" SortMemberPath="Size">
           <DataGridTemplateColumn.Header>
             <TextBlock Text="{DynamicResource Col_Size}" />
           </DataGridTemplateColumn.Header>
@@ -128,7 +129,7 @@
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTemplateColumn Width="145" SortMemberPath="Modified">
+        <DataGridTemplateColumn Tag="Date" Width="145" SortMemberPath="Modified">
           <DataGridTemplateColumn.Header>
             <TextBlock Text="{DynamicResource Col_Date}" />
           </DataGridTemplateColumn.Header>
@@ -138,7 +139,7 @@
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTemplateColumn Width="100" SortMemberPath="Permissions">
+        <DataGridTemplateColumn Tag="Permissions" Width="100" SortMemberPath="Permissions">
           <DataGridTemplateColumn.Header>
             <TextBlock Text="{DynamicResource Col_Permissions}" />
           </DataGridTemplateColumn.Header>
@@ -148,7 +149,7 @@
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTemplateColumn Width="100" SortMemberPath="Owner">
+        <DataGridTemplateColumn Tag="Owner" Width="100" SortMemberPath="Owner">
           <DataGridTemplateColumn.Header>
             <TextBlock Text="{DynamicResource Col_Owner}" />
           </DataGridTemplateColumn.Header>

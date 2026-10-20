@@ -5,12 +5,16 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 using DackelFxp.App.ViewModels;
+using DackelFxp.Core.Settings;
+using DackelFxp.Ftp;
 
 namespace DackelFxp.App.Views;
 
 public partial class BrowserPaneView : UserControl
 {
     private const double DragThreshold = 8;
+    /// <summary>Pause after which typed letters start a new search (like Explorer).</summary>
+    private const long TypeAheadResetMs = 1000;
 
     private bool _pressed;
     private Point _pressPoint;
@@ -19,14 +23,20 @@ public partial class BrowserPaneView : UserControl
     private BrowserPaneView? _hoverTarget;
     /// <summary>Row pressed inside a multi selection: selected alone only if the press ends without a drag.</summary>
     private FileEntryViewModel? _deferredSelect;
+    private string _typeAhead = "";
+    private long _typeAheadAt;
+    private readonly List<(DataGridColumn Column, DataGridLength Width)> _defaultColumns;
 
     public BrowserPaneView()
     {
         InitializeComponent();
+        _defaultColumns = Grid.Columns.Select(c => (c, c.Width)).ToList();
 
         DataContextChanged += (_, _) =>
         {
-            if (Vm is { } vm) vm.SelectionSource = () => Grid.SelectedItems.OfType<FileEntryViewModel>().ToList();
+            if (Vm is not { } vm) return;
+            vm.SelectionSource = () => Grid.SelectedItems.OfType<FileEntryViewModel>().ToList();
+            ApplyColumnLayout(ColumnSettings);
         };
         Grid.DoubleTapped += async (_, e) =>
         {
@@ -36,6 +46,7 @@ public partial class BrowserPaneView : UserControl
 
         // Tunnel + handledEventsToo: the DataGrid handles (and captures) pointer and key input itself.
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+        AddHandler(TextInputEvent, OnTextInput, RoutingStrategies.Tunnel);
         AddHandler(GotFocusEvent, (_, _) => Activated?.Invoke(), RoutingStrategies.Bubble);
         AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(PointerMovedEvent, OnPointerMoved, RoutingStrategies.Tunnel, handledEventsToo: true);
@@ -45,6 +56,10 @@ public partial class BrowserPaneView : UserControl
         // Files dragged in from the system file manager (Explorer, Nautilus, ...) are uploaded.
         Grid.AddHandler(DragDrop.DragOverEvent, OnExternalDragOver);
         Grid.AddHandler(DragDrop.DropEvent, OnExternalDrop);
+
+        // Right-click on a column header: column menu instead of the file menu.
+        Grid.AddHandler(ContextRequestedEvent, OnHeaderContextRequested, RoutingStrategies.Tunnel);
+        Grid.ColumnReordered += (_, _) => StoreColumnLayout();
     }
 
     /// <summary>The pane got focus or was clicked: it becomes the active pane.</summary>
@@ -82,6 +97,126 @@ public partial class BrowserPaneView : UserControl
         if (action is null) return;
         e.Handled = true;
         await action();
+    }
+
+    /// <summary>Typing in the list jumps to the first entry starting with the typed text.</summary>
+    private void OnTextInput(object? sender, TextInputEventArgs e)
+    {
+        if (Vm is not { } vm || e.Source is TextBox || string.IsNullOrEmpty(e.Text) || char.IsControl(e.Text[0])) return;
+        var now = Environment.TickCount64;
+        if (now - _typeAheadAt > TypeAheadResetMs) _typeAhead = "";
+        _typeAheadAt = now;
+        // A leading space keeps its usual meaning in the list.
+        if (_typeAhead.Length == 0 && string.IsNullOrWhiteSpace(e.Text)) return;
+        _typeAhead += e.Text;
+        e.Handled = true;
+        if (vm.FindByPrefix(_typeAhead, Grid.SelectedItem as FileEntryViewModel) is not { } match) return;
+        Grid.SelectedItems.Clear();
+        Grid.SelectedItem = match;
+        Grid.ScrollIntoView(match, null);
+    }
+
+    // ---------------------------------------------------------------- columns
+
+    private List<ListColumn> ColumnSettings
+    {
+        get
+        {
+            var s = App.Services.Settings.Current;
+            return Vm?.IsLeft != false ? s.LeftColumns : s.RightColumns;
+        }
+    }
+
+    private static string ColumnKey(DataGridColumn column) => column.Tag as string ?? "";
+
+    private static string ColumnTitle(DataGridColumn column) => (column.Header as TextBlock)?.Text ?? ColumnKey(column);
+
+    private void ApplyColumnLayout(IReadOnlyList<ListColumn> layout)
+    {
+        // Saved columns in their order, columns unknown to the settings (new in a later version) behind them.
+        var ordered = layout
+            .Select(l => (Setting: l, Column: Grid.Columns.FirstOrDefault(c => ColumnKey(c) == l.Key)))
+            .Where(x => x.Column is not null)
+            .ToList();
+        var index = 0;
+        foreach (var (setting, column) in ordered)
+        {
+            column!.DisplayIndex = index++;
+            column.IsVisible = setting.Visible;
+            if (setting.Width > 0) column.Width = new DataGridLength(setting.Width);
+        }
+        foreach (var column in Grid.Columns.Except(ordered.Select(x => x.Column!)).OrderBy(c => c.DisplayIndex).ToList())
+            column.DisplayIndex = index++;
+        if (Grid.Columns.All(c => !c.IsVisible)) Grid.Columns[0].IsVisible = true;
+    }
+
+    /// <summary>Writes order, visibility and width of the columns into the settings (saved on exit).</summary>
+    public void StoreColumnLayout()
+    {
+        if (Vm is null) return;
+        var layout = ColumnSettings;
+        layout.Clear();
+        layout.AddRange(Grid.Columns.OrderBy(c => c.DisplayIndex).Select(c => new ListColumn
+        {
+            Key = ColumnKey(c),
+            Visible = c.IsVisible,
+            // The star column (name) keeps filling the remaining width.
+            Width = c.Width.IsAbsolute && c.ActualWidth > 0 ? c.ActualWidth : 0,
+        }));
+    }
+
+    private void OnHeaderContextRequested(object? sender, ContextRequestedEventArgs e)
+    {
+        if ((e.Source as Visual)?.FindAncestorOfType<DataGridColumnHeader>(includeSelf: true) is not { } header) return;
+        e.Handled = true;
+        HeaderMenu = new ContextMenu { ItemsSource = BuildColumnMenu() };
+        HeaderMenu.Open(header);
+    }
+
+    /// <summary>The column menu opened last.</summary>
+    internal ContextMenu? HeaderMenu { get; private set; }
+
+    internal List<object> BuildColumnMenu()
+    {
+        var visibleCount = Grid.Columns.Count(c => c.IsVisible);
+        var items = new List<object>();
+        foreach (var column in Grid.Columns.OrderBy(c => c.DisplayIndex))
+        {
+            var item = new MenuItem
+            {
+                Header = ColumnTitle(column),
+                ToggleType = MenuItemToggleType.CheckBox,
+                IsChecked = column.IsVisible,
+                // The last visible column cannot be hidden.
+                IsEnabled = !(column.IsVisible && visibleCount == 1),
+            };
+            item.Click += (_, _) => SetColumnVisible(column, !column.IsVisible);
+            items.Add(item);
+        }
+        items.Add(new Separator());
+        var reset = new MenuItem { Header = Lang.T("Standardspalten", "Default columns") };
+        reset.Click += (_, _) => ResetColumns();
+        items.Add(reset);
+        return items;
+    }
+
+    internal void SetColumnVisible(DataGridColumn column, bool visible)
+    {
+        if (!visible && Grid.Columns.Count(c => c.IsVisible) <= 1) return;
+        column.IsVisible = visible;
+        StoreColumnLayout();
+    }
+
+    internal void ResetColumns()
+    {
+        for (var i = 0; i < _defaultColumns.Count; i++)
+        {
+            var (column, width) = _defaultColumns[i];
+            column.DisplayIndex = i;
+            column.IsVisible = true;
+            column.Width = width;
+        }
+        ColumnSettings.Clear();
     }
 
     // ---------------------------------------------------------------- mouse

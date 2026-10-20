@@ -38,6 +38,8 @@ Vorbild ist FlashFXP: zwei Browser-Seiten, Site-Manager, Queue und Site-zu-Site-
 | Mittlere Maustaste | Einen Ordner höher |
 | Maus-Zurück-Taste | Vorheriger Ordner |
 | Drag & Drop | Zwischen den Seiten: Download, Upload oder FXP |
+| Tippen in der Liste | Springt zum ersten Eintrag, der so anfängt (gleicher Buchstabe nochmal: nächster Treffer) |
+| Rechtsklick auf Spaltenkopf | Spalten ein-/ausblenden; Spaltenkopf ziehen verschiebt die Spalte |
 
 ## Bauen und starten
 

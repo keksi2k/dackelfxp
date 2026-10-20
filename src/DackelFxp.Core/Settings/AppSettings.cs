@@ -48,6 +48,15 @@ public sealed class CustomCommand
     }
 }
 
+/// <summary>One column of a file list; the order of the list is the display order.</summary>
+public sealed class ListColumn
+{
+    public string Key { get; set; } = "";
+    public bool Visible { get; set; } = true;
+    /// <summary>Pixel width; 0 = default width.</summary>
+    public double Width { get; set; }
+}
+
 public sealed class AppSettings
 {
     public int TransferSlots { get; set; } = 2;
@@ -82,6 +91,9 @@ public sealed class AppSettings
     public double ListFontSize { get; set; } = 12;
     /// <summary>Show symbolic links above folders and files.</summary>
     public bool SortLinksOnTop { get; set; }
+    /// <summary>Column order, visibility and width of the left / right file list; empty = default.</summary>
+    public List<ListColumn> LeftColumns { get; set; } = [];
+    public List<ListColumn> RightColumns { get; set; } = [];
     /// <summary>"de" or "en"; empty = German.</summary>
     public string Language { get; set; } = "";
     public string LastLocalPath { get; set; } = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);

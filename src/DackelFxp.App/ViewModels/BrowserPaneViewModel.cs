@@ -30,6 +30,7 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
         Browser = new LocalBrowser();
     }
 
+    public bool IsLeft => _isLeft;
     public string Name => _isLeft ? Lang.T("Links", "Left") : Lang.T("Rechts", "Right");
     /// <summary>"Left: SiteName" for the command line target selection.</summary>
     public string DisplayLabel => $"{Name}: {Title}";
@@ -206,6 +207,26 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
         PathText = actual.Length == 0 ? Lang.T("Laufwerke", "Drives") : actual;
         if (!IsRemote && actual.Length > 0) _services.Settings.Current.LastLocalPath = actual;
         ApplyFilter();
+    }
+
+    /// <summary>
+    /// Type-ahead like in a file manager: the first entry whose name starts with <paramref name="typed"/>,
+    /// searched from <paramref name="current"/> on. Repeating one letter ("aaa") steps through the entries starting with it.
+    /// </summary>
+    public FileEntryViewModel? FindByPrefix(string typed, FileEntryViewModel? current)
+    {
+        if (typed.Length == 0 || Items.Count == 0) return null;
+        var repeated = typed.All(c => char.ToUpperInvariant(c) == char.ToUpperInvariant(typed[0]));
+        var prefix = repeated ? typed[..1] : typed;
+        var start = current is null ? -1 : Items.IndexOf(current);
+        // A new letter jumps to the next match; further letters refine the current one.
+        var offset = repeated ? 1 : 0;
+        for (var i = 0; i < Items.Count; i++)
+        {
+            var entry = Items[((start < 0 ? 0 : start + offset) + i) % Items.Count];
+            if (entry.Name.StartsWith(prefix, StringComparison.CurrentCultureIgnoreCase)) return entry;
+        }
+        return null;
     }
 
     /// <summary>Re-sorts the current listing (e.g. after "sort links on top" changed).</summary>

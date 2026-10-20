@@ -307,6 +307,124 @@ public class MainWindowTests
         Assert.Equal(16d, grid.FontSize);
     }
 
+    private static async Task<UiFixture> CreateTypeAheadFixtureAsync() => await UiFixture.CreateAsync(server =>
+    {
+        server.Directories["/incoming/Bravo"] = true;
+        server.Files["/incoming/beta.txt"] = [1];
+    });
+
+    private static void Type(UiFixture ui, string text)
+    {
+        foreach (var c in text) ui.Window.KeyTextInput(c.ToString());
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    [AvaloniaFact]
+    public async Task Typing_In_The_List_Jumps_To_The_Matching_Entry()
+    {
+        await using var ui = await CreateTypeAheadFixtureAsync();
+        Assert.Equal(["Bravo", "Release-GRP", "b.nfo", "beta.txt"], ui.Vm.Left.Items.Select(i => i.Name));
+        SelectRows(ui, left: true, "Release-GRP");
+
+        Type(ui, "be");
+        Assert.Equal(["beta.txt"], ui.Vm.Left.Selection.Select(i => i.Name));
+
+        Thread.Sleep(1100);
+        Type(ui, "r");
+        Assert.Equal(["Release-GRP"], ui.Vm.Left.Selection.Select(i => i.Name));
+    }
+
+    [AvaloniaFact]
+    public async Task Repeating_A_Letter_Cycles_Through_Matching_Entries()
+    {
+        await using var ui = await CreateTypeAheadFixtureAsync();
+        SelectRows(ui, left: true, "Release-GRP");
+
+        Type(ui, "b");
+        Assert.Equal("b.nfo", Assert.Single(ui.Vm.Left.Selection).Name);
+        Type(ui, "b");
+        Assert.Equal("beta.txt", Assert.Single(ui.Vm.Left.Selection).Name);
+        Type(ui, "b");
+        Assert.Equal("Bravo", Assert.Single(ui.Vm.Left.Selection).Name);
+    }
+
+    [AvaloniaFact]
+    public async Task Typing_In_The_Path_Box_Does_Not_Jump()
+    {
+        await using var ui = await CreateTypeAheadFixtureAsync();
+        SelectRows(ui, left: true, "Release-GRP");
+        var pathBox = ui.Pane(left: true).PathBox;
+        pathBox.Focus();
+        pathBox.SelectAll();
+        Type(ui, "b");
+        Assert.Equal("Release-GRP", Assert.Single(ui.Vm.Left.Selection).Name);
+        Assert.Equal("b", ui.Vm.Left.PathText);
+    }
+
+    private static List<string> VisibleColumns(BrowserPaneView pane) =>
+        pane.Grid.Columns.Where(c => c.IsVisible).OrderBy(c => c.DisplayIndex).Select(c => (string)c.Tag!).ToList();
+
+    [AvaloniaFact]
+    public async Task Saved_Column_Layout_Is_Applied_Per_Pane()
+    {
+        await using var ui = await UiFixture.CreateAsync(configure: s => s.Settings.Current.LeftColumns =
+        [
+            new() { Key = "Size" },
+            new() { Key = "Name" },
+            new() { Key = "Owner", Visible = false },
+            new() { Key = "Date", Width = 200 },
+        ]);
+        // Permissions is missing in the settings: it is appended.
+        Assert.Equal(["Size", "Name", "Date", "Permissions"], VisibleColumns(ui.Pane(left: true)));
+        Assert.Equal(200, ui.Pane(left: true).Grid.Columns.Single(c => (string)c.Tag! == "Date").Width.Value);
+        Assert.Equal(["Name", "Size", "Date", "Permissions", "Owner"], VisibleColumns(ui.Pane(left: false)));
+    }
+
+    [AvaloniaFact]
+    public async Task Columns_Can_Be_Hidden_And_Reset()
+    {
+        await using var ui = await UiFixture.CreateAsync();
+        var pane = ui.Pane(left: true);
+        var columns = pane.Grid.Columns;
+
+        pane.SetColumnVisible(columns.Single(c => (string)c.Tag! == "Owner"), false);
+        columns.Single(c => (string)c.Tag! == "Date").DisplayIndex = 0;
+        pane.StoreColumnLayout();
+        Assert.Equal(["Date", "Name", "Size", "Permissions"], VisibleColumns(pane));
+        var saved = ui.Services.Settings.Current.LeftColumns;
+        Assert.Equal(["Date", "Name", "Size", "Permissions", "Owner"], saved.Select(c => c.Key));
+        Assert.False(saved.Single(c => c.Key == "Owner").Visible);
+        Assert.Empty(ui.Services.Settings.Current.RightColumns);
+
+        // The last visible column stays.
+        foreach (var c in columns.ToList()) pane.SetColumnVisible(c, false);
+        Assert.Single(VisibleColumns(pane));
+
+        pane.ResetColumns();
+        Assert.Equal(["Name", "Size", "Date", "Permissions", "Owner"], VisibleColumns(pane));
+        Assert.Empty(ui.Services.Settings.Current.LeftColumns);
+    }
+
+    [AvaloniaFact]
+    public async Task Right_Click_On_Header_Opens_Column_Menu()
+    {
+        await using var ui = await UiFixture.CreateAsync();
+        var pane = ui.Pane(left: true);
+        ui.Window.UpdateLayout();
+        var header = pane.GetVisualDescendants().OfType<DataGridColumnHeader>().First(h => h.IsVisible && h.Bounds.Width > 0);
+        var p = header.TranslatePoint(new Point(header.Bounds.Width / 2, header.Bounds.Height / 2), ui.Window)!.Value;
+        ui.Window.MouseDown(p, MouseButton.Right);
+        ui.Window.MouseUp(p, MouseButton.Right);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.NotNull(pane.HeaderMenu);
+        Assert.True(pane.HeaderMenu!.IsOpen);
+        Assert.False(pane.Grid.ContextMenu!.IsOpen);
+        var toggles = pane.HeaderMenu.ItemsSource!.OfType<MenuItem>().Where(m => m.ToggleType == MenuItemToggleType.CheckBox);
+        Assert.Equal(["Name", "Größe", "Datum", "Rechte", "Besitzer"], toggles.Select(m => (string)m.Header!));
+        pane.HeaderMenu.Close();
+    }
+
     /// <summary>Renders screenshots for manual review; only runs with DACKELFXP_SHOTS=folder.</summary>
     [AvaloniaFact]
 #pragma warning disable CS0618 // Bitmap.Save(string): simple PNG output is enough here
