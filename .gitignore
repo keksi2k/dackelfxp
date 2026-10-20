@@ -432,6 +432,8 @@ test-results/
 
 # Icon must end with two \r
 Icon
+# ... but not the icon generator (case-insensitive file systems also match "icon")
+!tools/icon/
 
 
 # Thumbnails

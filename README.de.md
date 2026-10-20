@@ -4,7 +4,7 @@
 
 [English](README.md) | **Deutsch**
 
-FTP/FTPS/FXP-Client in C# / .NET 10 mit Avalonia-Oberfläche – läuft auf Windows und Linux (getestet: Windows 11, Ubuntu 24.04).
+FTP/FTPS/FXP-Client in C# / .NET 10 mit Avalonia-Oberfläche – läuft auf Windows, Linux und macOS (getestet: Windows 11, Ubuntu 24.04; macOS-Builds ungetestet).
 Vorbild ist FlashFXP: zwei Browser-Seiten, Site-Manager, Queue und Site-zu-Site-Transfers inklusive Secure FXP.
 
 ## Funktionen
@@ -53,14 +53,16 @@ Programmoptionen:
 - `--config <ordner>` (oder Umgebungsvariable `DACKELFXP_CONFIG`): eigener Konfigurationsordner, z. B. für eine portable Installation
 - `--left <site>` / `--right <site>`: beim Start mit einer Site verbinden
 
-Standard-Konfiguration: `%APPDATA%\DackelFxp` (Windows) bzw. `~/.config/dackelfxp` (Linux).
+Standard-Konfiguration: `%APPDATA%\DackelFxp` (Windows), `~/.config/dackelfxp` (Linux) bzw. `~/Library/Application Support/dackelfxp` (macOS).
 
 ### Veröffentlichen (Single-File, ohne installierte .NET-Runtime)
 
 ```bash
-dotnet publish src/DackelFxp.App -p:PublishProfile=win-x64     # -> artifacts/win-x64/DackelFxp.exe
-dotnet publish src/DackelFxp.App -p:PublishProfile=linux-x64   # -> artifacts/linux-x64/DackelFxp
+dotnet publish src/DackelFxp.App -c Release -r win-x64 -o artifacts/win-x64   # oder linux-x64, osx-arm64, ...
+python tools/release.py     # alle Ziele (Windows, Linux, macOS; x64 und ARM64) gepackt nach releases/v<version>/
 ```
+
+Unter macOS ist die App nicht notarisiert. Nach dem Entpacken einmal die Download-Quarantäne entfernen: `xattr -dr com.apple.quarantine DackelFXP.app`
 
 Unter Ubuntu werden die üblichen X11-Bibliotheken benötigt (`libx11-6 libice6 libsm6 libfontconfig1`), auf einem Desktop-System sind sie vorhanden. Consolas ist unter Linux meist nicht installiert; dann wird DejaVu Sans Mono bzw. Liberation Mono verwendet.
 
@@ -90,7 +92,7 @@ src/DackelFxp.Ftp     Protokoll-Stack (FtpClient, FxpTransfer, Listing-Parser) �
 src/DackelFxp.Core    Sites, Verschlüsselung, Connection-Pool, Queue/Transfer-Engine, Regeln, Planer, Tools
 src/DackelFxp.App     Avalonia-GUI (MVVM)
 tests/                Unit- und Integrationstests
-tools/                Dev-FTP-Server
+tools/                Dev-FTP-Server, Icon-Generator, Release-Skript
 ```
 
 ## Bekannte Grenzen

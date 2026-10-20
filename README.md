@@ -4,7 +4,7 @@
 
 **English** | [Deutsch](README.de.md)
 
-FTP/FTPS/FXP client in C# / .NET 10 with an Avalonia UI – runs on Windows and Linux (tested: Windows 11, Ubuntu 24.04).
+FTP/FTPS/FXP client in C# / .NET 10 with an Avalonia UI – runs on Windows, Linux and macOS (tested: Windows 11, Ubuntu 24.04; macOS builds are untested).
 Modeled after FlashFXP: two browser panes, site manager, transfer queue and site-to-site transfers including secure FXP.
 
 ## Features
@@ -53,14 +53,16 @@ Command line options:
 - `--config <folder>` (or environment variable `DACKELFXP_CONFIG`): separate configuration folder, e.g. for a portable installation
 - `--left <site>` / `--right <site>`: connect to a site on startup
 
-Default configuration folder: `%APPDATA%\DackelFxp` (Windows) or `~/.config/dackelfxp` (Linux).
+Default configuration folder: `%APPDATA%\DackelFxp` (Windows), `~/.config/dackelfxp` (Linux) or `~/Library/Application Support/dackelfxp` (macOS).
 
 ### Publish (single file, no .NET runtime required)
 
 ```bash
-dotnet publish src/DackelFxp.App -p:PublishProfile=win-x64     # -> artifacts/win-x64/DackelFxp.exe
-dotnet publish src/DackelFxp.App -p:PublishProfile=linux-x64   # -> artifacts/linux-x64/DackelFxp
+dotnet publish src/DackelFxp.App -c Release -r win-x64 -o artifacts/win-x64   # or linux-x64, osx-arm64, ...
+python tools/release.py     # all targets (Windows, Linux, macOS; x64 and ARM64) packed into releases/v<version>/
 ```
+
+On macOS the app is not notarized. After unpacking, remove the download quarantine once: `xattr -dr com.apple.quarantine DackelFXP.app`
 
 On Ubuntu the usual X11 libraries are required (`libx11-6 libice6 libsm6 libfontconfig1`); they are present on any desktop system. Consolas is usually not installed on Linux; the UI then falls back to DejaVu Sans Mono or Liberation Mono.
 
@@ -90,7 +92,7 @@ src/DackelFxp.Ftp     Protocol stack (FtpClient, FxpTransfer, listing parsers) �
 src/DackelFxp.Core    Sites, encryption, connection pool, queue/transfer engine, rules, scheduler, tools
 src/DackelFxp.App     Avalonia UI (MVVM)
 tests/                Unit and integration tests
-tools/                Dev FTP server
+tools/                Dev FTP server, icon generator, release script
 ```
 
 ## Known limitations
