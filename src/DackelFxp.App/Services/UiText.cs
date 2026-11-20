@@ -85,6 +85,7 @@ public static class UiText
         ["Menu_Settings"] = ("Einstellungen...", "Settings..."),
         ["Menu_SiteManager"] = ("Site-Manager...", "Site manager..."),
         ["Menu_Sites"] = ("_Sites", "_Sites"),
+        ["Menu_Statistics"] = ("_Statistik", "_Statistics"),
         ["Menu_Tools"] = ("_Werkzeuge", "_Tools"),
         ["Pane_AddBookmark"] = ("Lesezeichen hinzufügen", "Add bookmark"),
         ["Pane_Back"] = ("Zurück", "Back"),
@@ -171,6 +172,10 @@ public static class UiText
         ["Skip_Help"] = ("Muster: * und ? oder Regex. Priorität: höher = früher, negativ = später.", "Pattern: * and ? or regex. Priority: higher = earlier, negative = later."),
         ["Skip_NewList"] = ("Neue Liste", "New list"),
         ["Skip_RemoveRule"] = ("Regel entfernen", "Remove rule"),
+        ["Stats_AvgTip"] = ("Durchschnitt pro Übertragung: Datenmenge geteilt durch die Zeit, die die Übertragungen gedauert haben", "Average per transfer: amount of data divided by the time the transfers took"),
+        ["Stats_Help"] = ("Erfasst jede übertragene Datei (lokale SQLite-Datenbank stats.db)", "Records every transferred file (local SQLite database stats.db)"),
+        ["Stats_MaxTip"] = ("Höchster Tageswert im Diagramm", "Highest daily value in the chart"),
+        ["Stats_Reset"] = ("Zurücksetzen...", "Reset..."),
         ["Tab_Commands"] = ("Befehle", "Commands"),
         ["Tab_Connection"] = ("Verbindung", "Connection"),
         ["Tab_FileExists"] = ("Datei existiert", "File exists"),
@@ -182,6 +187,7 @@ public static class UiText
         ["Tab_Skiplists"] = ("Skiplisten", "Skiplists"),
         ["Title_QuickConnect"] = ("Schnellverbindung", "Quick connect"),
         ["Title_Settings"] = ("Einstellungen", "Settings"),
+        ["Title_Statistics"] = ("Statistik", "Statistics"),
         ["Title_SiteManager"] = ("Site-Manager", "Site manager"),
     };
 }

@@ -2,6 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DackelFxp.Ftp\DackelFxp.Ftp.csproj" />
     <PackageReference Include="System.IO.Hashing" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="DackelFxp.Core.Tests" />

@@ -26,6 +26,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Left.ShowLog = Right.ShowLog = () => BottomTabIndex = 1;
         Queue = new QueueViewModel(services);
         Log = new LogViewModel(services);
+        Statistics = new StatisticsViewModel(services);
         CommandBar = new CommandBarViewModel(services, Left, Right);
 
         Lang.Changed += () => Dispatcher.UIThread.Post(OnLanguageChanged);
@@ -45,6 +46,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public BrowserPaneViewModel Right { get; }
     public QueueViewModel Queue { get; }
     public LogViewModel Log { get; }
+    public StatisticsViewModel Statistics { get; }
     public CommandBarViewModel CommandBar { get; }
 
     /// <summary>0 = queue, 1 = log.</summary>
@@ -244,6 +246,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Right.RefreshTexts();
         Queue.RefreshTexts();
         Log.RefreshTexts();
+        Statistics.RefreshTexts();
     }
 
     [RelayCommand]
@@ -257,6 +260,25 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Queue.RefreshSettings();
         ApplySortSettings();
         Lang.Code = _services.Settings.Current.Language;
+    }
+
+    private StatisticsWindow? _statisticsWindow;
+
+    /// <summary>Opens the statistics window (non-modal, only once; a second click brings it to the front).</summary>
+    [RelayCommand]
+    private void OpenStatistics()
+    {
+        if (_statisticsWindow is { } open)
+        {
+            open.Activate();
+            return;
+        }
+        _ = Statistics.RefreshAsync();
+        var window = new StatisticsWindow { DataContext = Statistics };
+        window.Closed += (_, _) => _statisticsWindow = null;
+        _statisticsWindow = window;
+        if (_services.Dialogs.Owner is { } owner) window.Show(owner);
+        else window.Show();
     }
 
     [RelayCommand]

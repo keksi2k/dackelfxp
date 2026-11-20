@@ -3,6 +3,7 @@ using DackelFxp.Core.Infrastructure;
 using DackelFxp.Core.Queue;
 using DackelFxp.Core.Settings;
 using DackelFxp.Core.Sites;
+using DackelFxp.Core.Stats;
 using DackelFxp.Core.Tools;
 using DackelFxp.Ftp;
 
@@ -28,6 +29,8 @@ public sealed class AppServices
         Engine = new TransferEngine(Queue, Connections, Sites, Settings) { ExistsPrompt = new UiExistsPrompt(Dialogs) };
         Scheduler = new Scheduler(Settings);
         Log = new LogStore(Connections);
+        Stats = OpenStats();
+        if (Stats is { } stats) Engine.Transferred += record => RecordTransfer(stats, record);
         ApplyIdent();
     }
 
@@ -41,6 +44,27 @@ public sealed class AppServices
     public Scheduler Scheduler { get; }
     public LogStore Log { get; }
     public IdentServer? Ident { get; private set; }
+    /// <summary>Transfer statistics; null if the database could not be opened.</summary>
+    public StatsStore? Stats { get; }
+
+    private StatsStore? OpenStats()
+    {
+        try { return new StatsStore(Paths.StatsFile); }
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException)
+        {
+            Log.AddError(Lang.T("Statistik", "Statistics"), Lang.T($"Statistik-Datenbank nicht verfügbar: {ex.Message}", $"Statistics database not available: {ex.Message}"));
+            return null;
+        }
+    }
+
+    private void RecordTransfer(StatsStore stats, TransferRecord record)
+    {
+        try { stats.Add(record); }
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or IOException)
+        {
+            Log.AddError(Lang.T("Statistik", "Statistics"), ex.Message);
+        }
+    }
 
     /// <summary>Starts/stops the ident responder according to the settings.</summary>
     public void ApplyIdent()
@@ -76,6 +100,7 @@ public sealed class AppServices
         var tasks = new List<Task> { Engine.StopAsync(), Connections.DisposeAsync().AsTask(), Scheduler.DisposeAsync().AsTask() };
         if (Ident is not null) tasks.Add(Ident.DisposeAsync().AsTask());
         Task.WaitAll(tasks.ToArray(), TimeSpan.FromSeconds(3));
+        StatsStore.ReleaseFiles();
         if (PendingLocation is { } pending) ApplyLocationAndRestart(pending.Kind, pending.CustomRoot);
     }
 

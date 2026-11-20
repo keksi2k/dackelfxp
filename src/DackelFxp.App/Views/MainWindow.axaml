@@ -66,6 +66,7 @@
                       ToggleType="Radio" IsChecked="{Binding !IsGerman, Mode=OneWay}" />
           </MenuItem>
         </MenuItem>
+        <MenuItem Header="{DynamicResource Menu_Statistics}" Command="{Binding OpenStatisticsCommand}" />
         <MenuItem Header="{DynamicResource Menu_Help}">
           <MenuItem Header="{DynamicResource Menu_About}" Command="{Binding AboutCommand}" />
         </MenuItem>

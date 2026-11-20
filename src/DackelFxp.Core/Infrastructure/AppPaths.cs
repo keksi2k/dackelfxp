@@ -38,6 +38,7 @@ public sealed class AppPaths
     public string QueueFile => Path.Combine(Root, "queue.json");
     public string KeyFile => Path.Combine(Root, "key.bin");
     public string LogDirectory => Path.Combine(Root, "logs");
+    public string StatsFile => Path.Combine(Root, "stats.db");
 
     private static (ConfigLocationKind, string) Resolve(string programDirectory)
     {

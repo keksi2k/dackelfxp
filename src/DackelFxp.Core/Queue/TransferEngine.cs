@@ -5,6 +5,7 @@ using DackelFxp.Core.Connections;
 using DackelFxp.Core.Rules;
 using DackelFxp.Core.Settings;
 using DackelFxp.Core.Sites;
+using DackelFxp.Core.Stats;
 using DackelFxp.Core.Tools;
 using DackelFxp.Ftp.Listing;
 using DackelFxp.Ftp.Protocol;
@@ -50,6 +51,8 @@ public sealed class TransferEngine : IAsyncDisposable
     /// <summary>The queue ran empty (all items done, failed or skipped).</summary>
     public event Action? QueueCompleted;
     public event Action<QueueItem, Exception>? ItemFailed;
+    /// <summary>A file attempt ended (done, failed or aborted) after data started to flow. Raised on a worker thread.</summary>
+    public event Action<TransferRecord>? Transferred;
 
     public void Start()
     {
@@ -173,16 +176,18 @@ public sealed class TransferEngine : IAsyncDisposable
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(stop);
         _running[item.Id] = cts;
         item.Error = null;
+        var attempt = new Attempt();
         try
         {
             var skipped = item.IsDirectory
                 ? await ExpandDirectoryAsync(item, cts.Token).ConfigureAwait(false)
                 : item.Kind switch
                 {
-                    TransferKind.Download => await DownloadAsync(item, cts.Token).ConfigureAwait(false),
-                    TransferKind.Upload => await UploadAsync(item, cts.Token).ConfigureAwait(false),
-                    _ => await FxpAsync(item, cts.Token).ConfigureAwait(false),
+                    TransferKind.Download => await DownloadAsync(item, attempt, cts.Token).ConfigureAwait(false),
+                    TransferKind.Upload => await UploadAsync(item, attempt, cts.Token).ConfigureAwait(false),
+                    _ => await FxpAsync(item, attempt, cts.Token).ConfigureAwait(false),
                 };
+            Report(item, attempt, TransferResult.Ok);
             item.Speed = 0;
             item.Status = skipped is null ? QueueStatus.Done : QueueStatus.Skipped;
             if (skipped is not null) item.Error = skipped;
@@ -190,11 +195,13 @@ public sealed class TransferEngine : IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
+            Report(item, attempt, TransferResult.Aborted);
             item.Speed = 0;
             item.Status = stop.IsCancellationRequested ? QueueStatus.Pending : QueueStatus.Paused;
         }
         catch (Exception ex)
         {
+            Report(item, attempt, TransferResult.Failed);
             item.Speed = 0;
             HandleFailure(item, ex);
         }
@@ -202,6 +209,33 @@ public sealed class TransferEngine : IAsyncDisposable
         {
             _running.TryRemove(item.Id, out _);
         }
+    }
+
+    /// <summary>Raises <see cref="Transferred"/> if the attempt got as far as moving data.</summary>
+    private void Report(QueueItem item, Attempt attempt, TransferResult result)
+    {
+        if (attempt.Clock is not { } clock || Transferred is not { } handler) return;
+        var record = new TransferRecord(DateTimeOffset.Now, item.Kind, result, item.Source.SiteName, item.Target.SiteName,
+            item.Name, attempt.Bytes(item), clock.Elapsed);
+        try { handler(record); }
+        catch (Exception) { /* statistics must never break a transfer */ }
+    }
+
+    /// <summary>Per-attempt bookkeeping for the statistics: where the data started and how long it flowed.</summary>
+    private sealed class Attempt
+    {
+        public long Offset;
+        public Stopwatch? Clock;
+        public ProgressTracker? Tracker;
+
+        public void Begin(long offset, ProgressTracker? tracker = null)
+        {
+            Offset = offset;
+            Tracker = tracker;
+            Clock = Stopwatch.StartNew();
+        }
+
+        public long Bytes(QueueItem item) => Math.Max(0, (Tracker?.Position ?? item.Transferred) - Offset);
     }
 
     private void HandleFailure(QueueItem item, Exception ex)
@@ -283,7 +317,7 @@ public sealed class TransferEngine : IAsyncDisposable
 
     // ---------------------------------------------------------------- transfers
 
-    private async Task<string?> DownloadAsync(QueueItem item, CancellationToken ct)
+    private async Task<string?> DownloadAsync(QueueItem item, Attempt attempt, CancellationToken ct)
     {
         var site = RequireSite(item.Source);
         await using var conn = await _connections.RentAsync(site, ct).ConfigureAwait(false);
@@ -299,6 +333,7 @@ public sealed class TransferEngine : IAsyncDisposable
 
         Directory.CreateDirectory(Path.GetDirectoryName(target.Path)!);
         var progress = new ProgressTracker(item, target.Offset);
+        attempt.Begin(target.Offset, progress);
         await using (var fs = new FileStream(target.Path, target.Offset > 0 ? FileMode.OpenOrCreate : FileMode.Create,
                          FileAccess.Write, FileShare.Read, 64 * 1024, useAsync: true))
         {
@@ -318,7 +353,7 @@ public sealed class TransferEngine : IAsyncDisposable
         return null;
     }
 
-    private async Task<string?> UploadAsync(QueueItem item, CancellationToken ct)
+    private async Task<string?> UploadAsync(QueueItem item, Attempt attempt, CancellationToken ct)
     {
         var site = RequireSite(item.Target);
         var local = new FileInfo(item.Source.Path);
@@ -333,6 +368,7 @@ public sealed class TransferEngine : IAsyncDisposable
         if (resolved is not { } target) return Lang.T("Ziel existiert", "target exists");
 
         var progress = new ProgressTracker(item, target.Offset);
+        attempt.Begin(target.Offset, progress);
         await using (var fs = new FileStream(local.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, useAsync: true))
             await client.UploadAsync(fs, target.Path, target.Offset, progress, _connections.GetLimiter(site), ct).ConfigureAwait(false);
         progress.Complete();
@@ -349,7 +385,7 @@ public sealed class TransferEngine : IAsyncDisposable
         return names.Contains;
     }
 
-    private async Task<string?> FxpAsync(QueueItem item, CancellationToken ct)
+    private async Task<string?> FxpAsync(QueueItem item, Attempt attempt, CancellationToken ct)
     {
         var sourceSite = RequireSite(item.Source);
         var targetSite = RequireSite(item.Target);
@@ -379,6 +415,7 @@ public sealed class TransferEngine : IAsyncDisposable
         };
 
         item.Transferred = target.Offset;
+        attempt.Begin(target.Offset);
         var sw = Stopwatch.StartNew();
         using var ticker = new FxpTicker(item, sw);
         var result = await FxpTransfer.TransferAsync(src.Client, item.Source.Path, dst.Client, target.Path, options, ct).ConfigureAwait(false);
@@ -507,7 +544,10 @@ public sealed class TransferEngine : IAsyncDisposable
             if (seconds > 0) item.Speed = (value - _start) / seconds;
         }
 
-        public void Complete() => item.Transferred = Math.Max(_current, _start);
+        /// <summary>Exact byte position (the item is only updated every 250 ms).</summary>
+        public long Position => Math.Max(_current, _start);
+
+        public void Complete() => item.Transferred = Position;
     }
 
     /// <summary>FXP gives no byte progress; show elapsed time as an indeterminate speed estimate.</summary>

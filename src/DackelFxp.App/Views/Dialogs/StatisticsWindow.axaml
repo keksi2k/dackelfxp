@@ -1,0 +1,124 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:DackelFxp.App.ViewModels"
+        xmlns:conv="using:DackelFxp.App.Converters"
+        x:Class="DackelFxp.App.Views.Dialogs.StatisticsWindow"
+        x:DataType="vm:StatisticsViewModel"
+        Title="{DynamicResource Title_Statistics}" Width="1180" Height="640" MinWidth="900" MinHeight="520"
+        WindowStartupLocation="CenterOwner">
+  <Window.Styles>
+    <Style Selector="TextBlock">
+      <Setter Property="FontSize" Value="{DynamicResource ListFontSize}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.num">
+      <Setter Property="HorizontalAlignment" Value="Right" />
+      <Setter Property="Margin" Value="0,0,10,0" />
+    </Style>
+    <Style Selector="TextBlock.heading">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+    <Style Selector="Border.bar">
+      <Setter Property="CornerRadius" Value="2" />
+      <Setter Property="Margin" Value="0,2,0,0" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel>
+    <Border DockPanel.Dock="Top" Classes="line-bottom" Background="{DynamicResource AreaHeaderBrush}">
+      <DockPanel Margin="8,6">
+        <Button DockPanel.Dock="Right" Content="{DynamicResource Btn_Close}" Click="OnClose" />
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <Button Content="{DynamicResource Ctx_Refresh}" Command="{Binding RefreshCommand}" />
+          <Button Content="{DynamicResource Stats_Reset}" Command="{Binding ResetCommand}" IsEnabled="{Binding IsAvailable}" />
+          <TextBlock Text="{DynamicResource Stats_Help}" Classes="muted" Margin="8,0,0,0" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <Grid RowDefinitions="Auto,20,*" ColumnDefinitions="Auto,24,*" Margin="12">
+      <!-- Amounts per period -->
+      <ItemsControl Grid.Row="0" Grid.Column="0" ItemsSource="{Binding Rows}" x:Name="PeriodTable" VerticalAlignment="Top">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:StatsRow">
+            <Border Classes.line-bottom="{Binding IsHeader}" Padding="0,3">
+              <Grid ColumnDefinitions="72,82,82,82,58,52,82,82,82" Height="20"
+                    TextElement.FontWeight="{Binding IsHeader, Converter={x:Static conv:Formats.BoldConverter}}">
+                <TextBlock Grid.Column="0" Text="{Binding Period}" FontWeight="SemiBold" />
+                <TextBlock Grid.Column="1" Classes="num" Text="{Binding Download}" />
+                <TextBlock Grid.Column="2" Classes="num" Text="{Binding Upload}" />
+                <TextBlock Grid.Column="3" Classes="num" Text="{Binding Fxp}" />
+                <TextBlock Grid.Column="4" Classes="num" Text="{Binding Files}" />
+                <TextBlock Grid.Column="5" Classes="num" Text="{Binding Failed}" />
+                <TextBlock Grid.Column="6" Classes="num" Text="{Binding AvgDownload}" ToolTip.Tip="{DynamicResource Stats_AvgTip}" />
+                <TextBlock Grid.Column="7" Classes="num" Text="{Binding AvgUpload}" ToolTip.Tip="{DynamicResource Stats_AvgTip}" />
+                <TextBlock Grid.Column="8" Classes="num" Text="{Binding AvgFxp}" ToolTip.Tip="{DynamicResource Stats_AvgTip}" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <!-- Records and other facts -->
+      <ScrollViewer Grid.Row="0" Grid.Column="2" HorizontalScrollBarVisibility="Disabled" MaxHeight="220">
+        <ItemsControl ItemsSource="{Binding Facts}" x:Name="FactList">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:StatsFact">
+              <Grid ColumnDefinitions="150,*" Margin="0,1">
+                <TextBlock Grid.Column="0" Text="{Binding Label}" Classes="muted" />
+                <TextBlock Grid.Column="1" Text="{Binding Value}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Value}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+      <!-- Daily volume, stacked download / upload / FXP -->
+      <DockPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" VerticalAlignment="Bottom">
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+          <TextBlock DockPanel.Dock="Right" Text="{Binding ChartMax}" Classes="muted" ToolTip.Tip="{DynamicResource Stats_MaxTip}" />
+          <StackPanel Orientation="Horizontal" Spacing="16">
+            <TextBlock Text="{Binding ChartTitle}" FontWeight="SemiBold" />
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <Border Width="10" Height="10" CornerRadius="2" Background="{DynamicResource StatsDownloadBrush}" />
+              <TextBlock Text="Download" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <Border Width="10" Height="10" CornerRadius="2" Background="{DynamicResource StatsUploadBrush}" />
+              <TextBlock Text="Upload" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <Border Width="10" Height="10" CornerRadius="2" Background="{DynamicResource StatsFxpBrush}" />
+              <TextBlock Text="FXP" />
+            </StackPanel>
+          </StackPanel>
+        </DockPanel>
+        <ItemsControl ItemsSource="{Binding Days}" x:Name="DayChart">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Rows="1" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:DayBar">
+              <!-- Transparent background: the whole column is the hover target, not only the bar. -->
+              <DockPanel Background="Transparent" ToolTip.Tip="{Binding Tip}" Margin="2,0">
+                <TextBlock DockPanel.Dock="Bottom" Text="{Binding Label}" Classes="muted" FontSize="11" HorizontalAlignment="Center" Margin="-8,2,-8,0"
+                           FontWeight="{Binding IsToday, Converter={x:Static conv:Formats.BoldConverter}}" />
+                <Border DockPanel.Dock="Bottom" Height="1" Margin="-2,0" Background="{DynamicResource AreaLineBrush}" />
+                <Grid Height="{x:Static vm:StatisticsViewModel.ChartHeight}">
+                  <StackPanel VerticalAlignment="Bottom" MaxWidth="22">
+                    <Border Classes="bar" Height="{Binding FxpHeight}" IsVisible="{Binding HasFxp}" Background="{DynamicResource StatsFxpBrush}" />
+                    <Border Classes="bar" Height="{Binding UploadHeight}" IsVisible="{Binding HasUpload}" Background="{DynamicResource StatsUploadBrush}" />
+                    <Border Classes="bar" Height="{Binding DownloadHeight}" IsVisible="{Binding HasDownload}" Background="{DynamicResource StatsDownloadBrush}" />
+                  </StackPanel>
+                </Grid>
+              </DockPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </DockPanel>
+    </Grid>
+  </DockPanel>
+</Window>

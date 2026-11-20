@@ -144,7 +144,8 @@ public class MainWindowTests
         Assert.False(ui.Pane(left: false).IsDropHighlighted);
         var item = Assert.Single(ui.Services.Queue.Snapshot(), i => i.ParentId is null);
         Assert.Equal(TransferKind.Download, item.Kind);
-        await UiFixture.WaitUntilAsync(() => File.Exists(Path.Combine(ui.LocalDir, "Release-GRP", "a.rar")));
+        // The file exists as soon as the download starts: wait for the item to finish, not just for the file.
+        await UiFixture.WaitUntilAsync(() => ui.Services.Queue.Snapshot().Any(i => i.Name == "a.rar" && i.Status == QueueStatus.Done));
         Assert.Equal(2000, new FileInfo(Path.Combine(ui.LocalDir, "Release-GRP", "a.rar")).Length);
     }
 
@@ -462,5 +463,61 @@ public class MainWindowTests
         Dispatcher.UIThread.RunJobs();
         settings.CaptureRenderedFrame()?.Save(Path.Combine(folder!, "settings.png"));
         settings.Close();
+
+        await DownloadForStatisticsAsync(ui);
+        var statistics = OpenStatistics(ui);
+        statistics.CaptureRenderedFrame()?.Save(Path.Combine(folder!, "statistics.png"));
+        statistics.Close();
+    }
+
+    private static async Task DownloadForStatisticsAsync(UiFixture ui)
+    {
+        ui.Services.Queue.Add([new QueueItem
+        {
+            Kind = TransferKind.Download,
+            Source = new TransferEndpoint(ui.Vm.Left.Site!.Id, "/incoming/Release-GRP/a.rar", "Fake"),
+            Target = new TransferEndpoint(null, Path.Combine(ui.LocalDir, "a.rar")),
+        }]);
+        ui.Vm.Queue.Start();
+        // Rows[1] = today; the view refreshes shortly after the transfer was recorded.
+        await UiFixture.WaitUntilAsync(() => ui.Vm.Statistics.Rows.Count > 1 && ui.Vm.Statistics.Rows[1].Download != "–");
+    }
+
+    private static DackelFxp.App.Views.Dialogs.StatisticsWindow OpenStatistics(UiFixture ui)
+    {
+        ui.Services.Dialogs.Owner = ui.Window; // as App.axaml.cs does at startup
+        ui.Vm.OpenStatisticsCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        var window = ui.Window.OwnedWindows.OfType<DackelFxp.App.Views.Dialogs.StatisticsWindow>().Single();
+        window.UpdateLayout();
+        Dispatcher.UIThread.RunJobs();
+        return window;
+    }
+
+    [AvaloniaFact]
+    public async Task Statistics_Window_Shows_Recorded_Transfers()
+    {
+        await using var ui = await UiFixture.CreateAsync();
+        await DownloadForStatisticsAsync(ui);
+
+        var stats = ui.Vm.Statistics;
+        Assert.Equal("1.95 KB", stats.Rows[1].Download.Replace(',', '.'));
+        Assert.Equal("1", stats.Rows[1].Files);
+        Assert.Equal(stats.Rows[1].Download, stats.Rows[5].Download); // all time
+        Assert.Equal(30, stats.Days.Count);
+        Assert.True(stats.Days[^1].HasDownload);
+        Assert.Contains(stats.Facts, f => f.Value.StartsWith("1. Fake", StringComparison.Ordinal));
+
+        // Top-level menu entry right before "Help".
+        var menu = ui.Window.GetVisualDescendants().OfType<Menu>().First();
+        var headers = menu.Items.OfType<MenuItem>().Select(m => m.Header?.ToString()).ToList();
+        Assert.Equal(headers.IndexOf(UiText.Entries["Menu_Help"].De) - 1, headers.IndexOf(UiText.Entries["Menu_Statistics"].De));
+
+        var window = OpenStatistics(ui);
+        Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == stats.Rows[1].Download && t.Bounds.Width > 0);
+        ui.Vm.OpenStatisticsCommand.Execute(null); // a second click does not open a second window
+        Dispatcher.UIThread.RunJobs();
+        Assert.Single(ui.Window.OwnedWindows.OfType<DackelFxp.App.Views.Dialogs.StatisticsWindow>());
+        window.Close();
     }
 }

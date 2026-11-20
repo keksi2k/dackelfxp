@@ -18,6 +18,7 @@ Modeled after FlashFXP: two browser panes, site manager, transfer queue and site
 - **Queue:** download, upload and FXP, folders are expanded recursively, several parallel slots, retries with delay, speed limits (global and per site), save and load, pause, reorder
 - **File exists:** separate rules for a smaller, equal or larger target (resume, skip, overwrite, rename, ask)
 - **Skiplists / priorities:** wildcards and regex, e.g. `.sfv`/`.nfo` first, `Sample` last
+- **Statistics** (menu *Statistics*, own window): downloaded, uploaded and FXP amounts for today, this week, month, year and all time, average speed, files and failures per period, a chart of the last 30 days, top sites, largest file, fastest transfer, busiest day and hour, upload/download ratio. Stored in a local SQLite database (`stats.db` in the configuration folder).
 - **Tools:** folder comparison with highlighting, "queue differences", SFV check (CRC32), custom commands with placeholders (`%p %f %d %s %1`), raw commands, CHMOD, view/edit with automatic upload after saving, scheduler (start/stop the queue at set times), ident server
 - **Command line** below the log: raw and custom commands to the site of the left or right pane; replies appear in the log (history with ↑/↓)
 - **Security:** passwords encrypted with AES-GCM, optionally protected by a master password (PBKDF2)

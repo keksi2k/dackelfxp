@@ -29,6 +29,8 @@ public static class Formats
     public static readonly IValueConverter SpeedConverter = new FuncValueConverter<double, string>(Speed);
     public static readonly IValueConverter FontPreviewConverter = new FuncValueConverter<string, FontFamily>(App.FontWithFallbacks);
 
+    public static readonly IValueConverter BoldConverter = new FuncValueConverter<bool, FontWeight>(b => b ? FontWeight.SemiBold : FontWeight.Normal);
+
     public static readonly IValueConverter KindConverter = new FuncValueConverter<TransferKind, string>(k => k switch
     {
         TransferKind.Download => "⬇",

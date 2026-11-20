@@ -7,10 +7,16 @@
         <ResourceDictionary x:Key="Dark">
           <SolidColorBrush x:Key="AreaLineBrush" Color="#3C3C3C" />
           <SolidColorBrush x:Key="AreaHeaderBrush" Color="#1E1E1E" />
+          <SolidColorBrush x:Key="StatsDownloadBrush" Color="#3987E5" />
+          <SolidColorBrush x:Key="StatsUploadBrush" Color="#D95926" />
+          <SolidColorBrush x:Key="StatsFxpBrush" Color="#199E70" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
           <SolidColorBrush x:Key="AreaLineBrush" Color="#D0D0D0" />
           <SolidColorBrush x:Key="AreaHeaderBrush" Color="#F3F3F3" />
+          <SolidColorBrush x:Key="StatsDownloadBrush" Color="#2A78D6" />
+          <SolidColorBrush x:Key="StatsUploadBrush" Color="#EB6834" />
+          <SolidColorBrush x:Key="StatsFxpBrush" Color="#1BAF7A" />
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
       <!-- Whole UI in Consolas; on Linux it falls back to DejaVu Sans Mono / Liberation Mono. The Fluent theme reads this key. -->

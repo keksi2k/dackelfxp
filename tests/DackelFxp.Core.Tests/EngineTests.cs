@@ -144,6 +144,39 @@ public sealed class EngineTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Reports_Transferred_Bytes_Per_Attempt_For_Statistics()
+    {
+        await using var server = new FakeFtpServer();
+        var payload = new byte[50_000];
+        server.Files["/f.bin"] = payload;
+        server.Files["/up/x.bin"] = [];
+        server.Directories["/up"] = true;
+        var site = AddSite(server, "src");
+        var target = Path.Combine(_root, "f.bin");
+        File.WriteAllBytes(target, payload[..20_000]);
+        var local = Path.Combine(_root, "u.bin");
+        File.WriteAllBytes(local, new byte[777]);
+        var records = new System.Collections.Concurrent.ConcurrentBag<Stats.TransferRecord>();
+        _engine.Transferred += records.Add;
+
+        _queue.Add([
+            new QueueItem { Kind = TransferKind.Download, Source = Remote(site, "/f.bin"), Target = Local(target), Size = payload.Length },
+            new QueueItem { Kind = TransferKind.Upload, Source = Local(local), Target = Remote(site, "/up/u.bin") },
+            new QueueItem { Kind = TransferKind.Download, Source = Remote(site, "/missing.bin"), Target = Local(Path.Combine(_root, "m.bin")) },
+        ]);
+        await RunQueueAsync();
+
+        var download = Assert.Single(records, r => r.Kind == TransferKind.Download && r.Result == Stats.TransferResult.Ok);
+        Assert.Equal(30_000, download.Bytes); // only the resumed part
+        Assert.Equal("src", download.SourceSite);
+        Assert.Equal("Lokal", download.TargetSite);
+        var upload = Assert.Single(records, r => r.Kind == TransferKind.Upload);
+        Assert.Equal(777, upload.Bytes);
+        Assert.Equal("u.bin", upload.FileName);
+        Assert.Contains(records, r => r.Result == Stats.TransferResult.Failed && r.FileName == "missing.bin");
+    }
+
+    [Fact]
     public async Task Fxp_Directory_Between_Tls_Sites()
     {
         await using var a = new FakeFtpServer(tls: true) { RequireProtP = true };
