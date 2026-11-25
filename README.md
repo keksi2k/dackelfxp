@@ -21,7 +21,7 @@ Modeled after FlashFXP: two browser panes, site manager, transfer queue and site
 - **Statistics** (menu *Statistics*, own window): downloaded, uploaded and FXP amounts for today, this week, month, year and all time, average speed, files and failures per period, a chart of the last 30 days, top sites, largest file, fastest transfer, busiest day and hour, upload/download ratio. Stored in a local SQLite database (`stats.db` in the configuration folder).
 - **Tools:** folder comparison with highlighting, "queue differences", SFV check (CRC32), custom commands with placeholders (`%p %f %d %s %1`), raw commands, CHMOD, view/edit with automatic upload after saving, scheduler (start/stop the queue at set times), ident server
 - **Command line** below the log: raw and custom commands to the site of the left or right pane; replies appear in the log (history with ↑/↓)
-- **Security:** passwords encrypted with AES-GCM, optionally protected by a master password (PBKDF2)
+- **Security:** passwords encrypted with AES-GCM, optionally protected by a master password (PBKDF2); file names from a server listing are validated before anything is written locally, so a malicious server cannot place files outside the target folder
 - **UI:** drag & drop between panes and from the system file manager, bookmarks, filter, colored protocol log per connection, dark/light theme, configurable font (default Consolas) and list font size, optional "sort all links on top", German/English (switchable live under *Tools → Language*)
 
 ## Keyboard shortcuts
@@ -43,6 +43,8 @@ Modeled after FlashFXP: two browser panes, site manager, transfer queue and site
 | Right-click on a column header | Show/hide columns; drag a header to move the column |
 
 ## Build and run
+
+Requires a .NET 10 SDK, version 10.0.404 or newer (set in `global.json`, so releases always bundle a patched runtime).
 
 ```bash
 dotnet build
@@ -104,3 +106,7 @@ tools/                Dev FTP server, icon generator, release script
 - Secure FXP (SSCN/CPSV) is tested against the built-in test server, but not against real glftpd/drftpd/ioFTPD servers
 - FXP transfers show no byte progress, only the elapsed time (the data flows directly between the servers)
 - No import of FlashFXP sites (`Sites.dat`)
+
+## Security
+
+Please report vulnerabilities privately, see [SECURITY.md](SECURITY.md).

@@ -1,6 +1,7 @@
 using DackelFxp.Ftp;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using DackelFxp.Core.Browsing;
 using DackelFxp.Core.Connections;
 using DackelFxp.Core.Rules;
 using DackelFxp.Core.Settings;
@@ -325,6 +326,9 @@ public sealed class TransferEngine : IAsyncDisposable
         if (item.Size <= 0) item.Size = Math.Max(0, await client.GetSizeAsync(item.Source.Path, ct).ConfigureAwait(false));
 
         var targetPath = item.Target.Path;
+        // Defense in depth, e.g. for queue entries saved by an older version.
+        if (!EntryName.HasNoTraversal(targetPath) || !EntryName.IsSafeLocal(Path.GetFileName(targetPath)))
+            throw new UnsafeEntryNameException(targetPath);
         var existing = File.Exists(targetPath) ? new FileInfo(targetPath).Length : -1;
         var dir = Path.GetDirectoryName(targetPath)!;
         var resolved = await ResolveExistingAsync(item, item.Size, existing, targetPath,
@@ -485,8 +489,16 @@ public sealed class TransferEngine : IAsyncDisposable
         }
 
         var children = new List<QueueItem>();
+        var rejected = new List<string>();
         foreach (var entry in entries)
         {
+            // Names from a server listing are untrusted: never let one escape the target folder.
+            var safe = item.Target.IsLocal ? EntryName.IsSafeLocal(entry.Name) : EntryName.IsSafeRemote(entry.Name);
+            if (!safe || (!item.Source.IsLocal && !EntryName.IsSafeRemote(entry.Name)))
+            {
+                rejected.Add(UnsafeEntryNameException.Printable(entry.Name));
+                continue;
+            }
             var rule = skipList?.Evaluate(entry.Name, entry.IsDir) ?? default;
             if (rule.Skip) continue;
             children.Add(new QueueItem
@@ -511,11 +523,14 @@ public sealed class TransferEngine : IAsyncDisposable
         _queue.InsertAfter(item, ordered);
         item.Size = ordered.Where(c => !c.IsDirectory).Sum(c => c.Size);
         item.Transferred = item.Size;
-        return null;
+        return rejected.Count == 0
+            ? null
+            : Lang.T($"Unsichere Dateinamen übersprungen: {string.Join(", ", rejected)}",
+                $"Unsafe file names skipped: {string.Join(", ", rejected)}");
     }
 
     private static string Combine(TransferEndpoint endpoint, string name) =>
-        endpoint.IsLocal ? Path.Combine(endpoint.Path, name) : FtpPath.Combine(endpoint.Path, name);
+        endpoint.IsLocal ? EntryName.CombineLocal(endpoint.Path, name) : FtpPath.Combine(endpoint.Path, name);
 
     public async ValueTask DisposeAsync()
     {

@@ -127,6 +127,44 @@ public sealed class EngineTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Directory_Download_Rejects_Traversal_Names_From_Server()
+    {
+        await using var server = new FakeFtpServer();
+        server.Directories["/rel"] = true;
+        server.Files["/rel/ok.txt"] = [1];
+        server.Files[@"/rel/..\..\evil.txt"] = [6, 6, 6];
+        if (OperatingSystem.IsWindows()) server.Files[@"/rel/C:\evil2.txt"] = [6];
+        var site = AddSite(server, "src");
+        var target = Path.Combine(_root, "dl", "a", "rel");
+
+        _queue.Add([new QueueItem { Kind = TransferKind.Download, IsDirectory = true, Source = Remote(site, "/rel"), Target = Local(target) }]);
+        await RunQueueAsync();
+
+        Assert.True(File.Exists(Path.Combine(target, "ok.txt")));
+        var written = Directory.EnumerateFiles(_root, "*", SearchOption.AllDirectories)
+            .Where(f => !f.StartsWith(Path.Combine(_root, "config"), StringComparison.OrdinalIgnoreCase));
+        Assert.Equal([Path.Combine(target, "ok.txt")], written);
+        var dirItem = _queue.Snapshot()[0];
+        Assert.Equal(QueueStatus.Skipped, dirItem.Status);
+        Assert.Contains("evil.txt", dirItem.Error);
+    }
+
+    [Fact]
+    public async Task Download_Refuses_Saved_Queue_Item_With_Traversal_Path()
+    {
+        await using var server = new FakeFtpServer();
+        server.Files["/f.bin"] = [1, 2, 3];
+        var site = AddSite(server, "src");
+        var target = Path.Combine(_root, "dl", "..", "..", "escaped.bin");
+
+        _queue.Add([new QueueItem { Kind = TransferKind.Download, Source = Remote(site, "/f.bin"), Target = Local(target), Size = 3 }]);
+        await RunQueueAsync();
+
+        Assert.False(File.Exists(target));
+        Assert.Equal(QueueStatus.Failed, _queue.Snapshot()[0].Status);
+    }
+
+    [Fact]
     public async Task Resumes_Partial_Download()
     {
         await using var server = new FakeFtpServer();

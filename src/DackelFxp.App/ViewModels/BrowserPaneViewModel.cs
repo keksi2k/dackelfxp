@@ -385,6 +385,12 @@ public sealed partial class BrowserPaneViewModel : ObservableObject
             return;
         }
 
+        if (!EntryName.IsSafeLocal(entry.Name))
+        {
+            await _services.Dialogs.ShowMessageAsync(Lang.T("Anzeigen/Bearbeiten", "View/Edit"),
+                Lang.T("Dieser Dateiname vom Server ist lokal nicht sicher verwendbar.", "This file name from the server cannot be used safely on this computer."));
+            return;
+        }
         var tempDir = Path.Combine(Path.GetTempPath(), "dackelfxp", Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(tempDir);
         var local = Path.Combine(tempDir, entry.Name);

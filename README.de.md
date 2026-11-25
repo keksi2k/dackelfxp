@@ -20,7 +20,7 @@ Vorbild ist FlashFXP: zwei Browser-Seiten, Site-Manager, Queue und Site-zu-Site-
 - **Skiplisten / Prioritäten:** Wildcard und Regex, z. B. `.sfv`/`.nfo` zuerst, `Sample` zuletzt
 - **Statistik** (Menü *Statistik*, eigenes Fenster): Download-, Upload- und FXP-Mengen für heute, diese Woche, diesen Monat, dieses Jahr und gesamt, Durchschnittsgeschwindigkeit, Dateien und Fehler je Zeitraum, Diagramm der letzten 30 Tage, Top-Sites, größte Datei, schnellste Übertragung, stärkster Tag und aktivste Stunde, Upload/Download-Verhältnis. Gespeichert in einer lokalen SQLite-Datenbank (`stats.db` im Konfigurationsordner).
 - **Werkzeuge:** Ordnervergleich mit Markierung, „Unterschiede in Queue", SFV-Prüfung (CRC32), Benutzerbefehle mit Platzhaltern (`%p %f %d %s %1`), Raw-Befehle, CHMOD, Anzeigen/Bearbeiten mit automatischem Upload nach dem Speichern, Planer (Queue zeitgesteuert starten/stoppen), Ident-Server
-- **Sicherheit:** Passwörter AES-GCM-verschlüsselt, optional mit Master-Passwort (PBKDF2)
+- **Sicherheit:** Passwörter AES-GCM-verschlüsselt, optional mit Master-Passwort (PBKDF2); Dateinamen aus Server-Listings werden geprüft, bevor lokal etwas geschrieben wird – ein bösartiger Server kann keine Dateien außerhalb des Zielordners ablegen
 - **Oberfläche:** Drag & Drop zwischen den Seiten und aus dem Dateimanager, Lesezeichen, Filter, farbiges Protokoll pro Verbindung, helles/dunkles Design, einstellbare Schriftart (Standard Consolas) und Listen-Schriftgröße, optional Links oben sortieren, Deutsch/Englisch (live umschaltbar unter *Werkzeuge → Sprache*)
 - **Befehlszeile** unter dem Log: Raw- und eigene Befehle an die Site der linken oder rechten Seite, Antworten erscheinen im Log (Verlauf mit ↑/↓)
 
@@ -43,6 +43,8 @@ Vorbild ist FlashFXP: zwei Browser-Seiten, Site-Manager, Queue und Site-zu-Site-
 | Rechtsklick auf Spaltenkopf | Spalten ein-/ausblenden; Spaltenkopf ziehen verschiebt die Spalte |
 
 ## Bauen und starten
+
+Benötigt ein .NET-10-SDK, Version 10.0.404 oder neuer (festgelegt in `global.json`, damit Releases immer eine gepatchte Runtime enthalten).
 
 ```bash
 dotnet build
@@ -104,3 +106,7 @@ tools/                Dev-FTP-Server, Icon-Generator, Release-Skript
 - Secure FXP (SSCN/CPSV) ist gegen den eingebauten Test-Server geprüft, aber nicht gegen echte glftpd/drftpd/ioFTPD-Server
 - FXP-Transfers zeigen keinen Byte-Fortschritt, nur die Laufzeit (die Daten fließen direkt zwischen den Servern)
 - Kein Import von FlashFXP-Sites (`Sites.dat`)
+
+## Sicherheit
+
+Sicherheitslücken bitte privat melden, siehe [SECURITY.md](SECURITY.md).

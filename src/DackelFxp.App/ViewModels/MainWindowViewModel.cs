@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DackelFxp.App.Services;
 using DackelFxp.App.Views.Dialogs;
+using DackelFxp.Core.Browsing;
 using DackelFxp.Core.Queue;
 using DackelFxp.Core.Settings;
 using DackelFxp.Core.Sites;
@@ -134,6 +135,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
             (true, false) => TransferKind.Download,
             _ => TransferKind.Upload,
         };
+        // Names from a server listing are untrusted: refuse any that could escape the target folder.
+        var unsafeNames = entries.Where(e => !e.IsDrive && !(to.IsRemote ? EntryName.IsSafeRemote(e.Name) : EntryName.IsSafeLocal(e.Name)))
+            .Select(e => e.Name).ToList();
+        if (unsafeNames.Count > 0)
+        {
+            var list = string.Join(", ", unsafeNames.Select(n => "\"" + UnsafeEntryNameException.Printable(n) + "\""));
+            _services.Log.AddError("Queue", Lang.T($"Unsichere Dateinamen übersprungen: {list}", $"Unsafe file names skipped: {list}"));
+            entries = entries.Where(e => !unsafeNames.Contains(e.Name)).ToList();
+        }
         var items = entries.Where(e => !e.IsDrive).Select(e => new QueueItem
         {
             Kind = kind,

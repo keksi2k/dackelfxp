@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.IO.Hashing;
+using DackelFxp.Core.Browsing;
 
 namespace DackelFxp.Core.Tools;
 
@@ -40,7 +41,8 @@ public static class SfvVerifier
         return Parse(File.ReadLines(sfvFile)).Select(entry =>
         {
             var path = Path.Combine(dir, entry.Key);
-            if (!File.Exists(path)) return new SfvResult(entry.Key, entry.Value, null, SfvStatus.Missing);
+            // An .sfv may come from a server: only check files inside its own folder.
+            if (!EntryName.IsInside(dir, path) || !File.Exists(path)) return new SfvResult(entry.Key, entry.Value, null, SfvStatus.Missing);
             var actual = ComputeCrc32(path);
             return new SfvResult(entry.Key, entry.Value, actual, actual == entry.Value ? SfvStatus.Ok : SfvStatus.Bad);
         }).ToList();
